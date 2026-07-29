@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Corfit">
 <meta name="theme-color" content="#EDEFEA">
-<!-- build 11: gym + crossfit library -->
+<!-- build 12: goal planner -->
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
 <link rel="apple-touch-icon" sizes="167x167" href="icon.png">
@@ -152,8 +152,8 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 nav.tabs{position:fixed;left:0;right:0;bottom:0;background:rgba(237,239,234,.94);
   backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
   border-top:1px solid var(--rule);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:20}
-nav.tabs button{flex:1;background:none;border:0;font:inherit;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
-  font-weight:600;color:var(--spruce);padding:15px 4px;cursor:pointer;position:relative}
+nav.tabs button{flex:1;background:none;border:0;font:inherit;font-size:10px;letter-spacing:.04em;text-transform:uppercase;
+  font-weight:600;color:var(--spruce);padding:15px 2px;cursor:pointer;position:relative}
 nav.tabs button[aria-current=page]{color:var(--ink)}
 nav.tabs button[aria-current=page]::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:9px;width:16px;height:2px;background:var(--ink)}
 
@@ -340,13 +340,90 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
     <p class="eyebrow">History</p>
     <ul class="wlist" id="weightList"></ul>
   </section>
+
+  <!-- ================= GOAL ================= -->
+  <section class="view" id="view-goal" hidden>
+    <p class="eyebrow" style="margin-top:16px">Your plan</p>
+
+    <div class="composer">
+      <div class="row2">
+        <div class="field">
+          <label for="gSex">Sex</label>
+          <select id="gSex"><option value="">—</option><option value="m">Male</option><option value="f">Female</option></select>
+        </div>
+        <div class="field kcalfield">
+          <label for="gAge">Age</label>
+          <input type="number" id="gAge" placeholder="30" inputmode="numeric" min="14" max="100">
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field kcalfield">
+          <label for="gHeight">Height (cm)</label>
+          <input type="number" id="gHeight" placeholder="175" inputmode="numeric" min="120" max="230">
+        </div>
+        <div class="field kcalfield">
+          <label for="gGoal">Goal weight (<span class="unitlabel">kg</span>)</label>
+          <input type="number" id="gGoal" placeholder="0.0" inputmode="decimal" step="0.1" min="0">
+        </div>
+      </div>
+      <div class="field">
+        <label for="gAct">Daily activity, outside logged workouts</label>
+        <select id="gAct">
+          <option value="1.2">Mostly sitting</option>
+          <option value="1.375">Lightly active</option>
+          <option value="1.55" selected>Moderately active</option>
+          <option value="1.725">Very active</option>
+          <option value="logged">Sitting + my logged activities</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="gRate">Pace</label>
+        <select id="gRate">
+          <option value="0.25">Gentle · 0.25 kg a week</option>
+          <option value="0.5" selected>Steady · 0.5 kg a week</option>
+          <option value="0.75">Brisk · 0.75 kg a week</option>
+          <option value="1">Fast · 1 kg a week</option>
+        </select>
+      </div>
+      <p class="hint" id="goalHint">Fill these in and the plan builds itself.</p>
+    </div>
+
+    <div id="planBox" hidden>
+      <div class="card">
+        <h3 id="planTitle">Daily target</h3>
+        <p class="sub" id="planSub"></p>
+        <div class="line" style="cursor:default;padding-top:4px">
+          <span class="name" style="font-family:Fraunces,serif;font-size:30px" id="planDaily">—</span>
+          <span class="leader"></span>
+          <span class="portion">kcal a day</span>
+        </div>
+        <div class="btnrow" style="margin-top:14px">
+          <button class="btn primary" id="applyGoal">Use as my daily goal</button>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><b class="num" id="planMaint">—</b><small>Maintenance</small></div>
+        <div class="stat"><b class="num" id="planBMR">—</b><small>At rest (BMR)</small></div>
+        <div class="stat"><b class="num" id="planWeek">—</b><small>Weekly intake</small></div>
+        <div class="stat"><b class="num" id="planMonth">—</b><small>Monthly intake</small></div>
+      </div>
+
+      <div class="card">
+        <h3>Getting there</h3>
+        <p class="sub" id="planEta"></p>
+        <p class="sub" id="planNote" style="margin-bottom:0"></p>
+      </div>
+    </div>
+  </section>
 </div>
 
 <nav class="tabs">
   <button data-view="log" aria-current="page">Log</button>
-  <button data-view="move">Activity</button>
-  <button data-view="trends">Dashboard</button>
+  <button data-view="move">Move</button>
+  <button data-view="trends">Stats</button>
   <button data-view="weight">Weight</button>
+  <button data-view="goal">Goal</button>
 </nav>
 
 <dialog id="settings">
@@ -710,6 +787,132 @@ function renderMove(){
   });
 }
 
+
+/* ---------------- plan ---------------- */
+/* Mifflin-St Jeor for BMR, activity factor for maintenance, 7,700 kcal per kg of body mass. */
+const KCAL_PER_KG = 7700;
+
+function planInputs(){
+  const p = DB.prefs;
+  return {
+    sex: p.sex || "",
+    age: parseFloat(p.age) || 0,
+    cm: parseFloat(p.cm) || 0,
+    goalKg: parseFloat(p.goalKg) || 0,
+    act: p.act || "1.55",
+    rate: parseFloat(p.rate) || 0.5,
+    nowKg: (DB.weights || []).length ? bodyKg() : 0
+  };
+}
+
+function avgDailyBurn(){
+  let sum = 0;
+  for(let i = 0; i < 7; i++) sum += burnOn(shiftDate(todayISO(), -i));
+  return sum / 7;
+}
+
+function buildPlan(){
+  const i = planInputs();
+  const box = document.getElementById("planBox");
+  const hint = document.getElementById("goalHint");
+  hint.classList.remove("err");
+
+  const missing = [];
+  if(!i.sex) missing.push("sex");
+  if(!i.age) missing.push("age");
+  if(!i.cm) missing.push("height");
+  if(!i.nowKg) missing.push("a current weight on the Weight tab");
+  if(!i.goalKg) missing.push("goal weight");
+  if(missing.length){
+    box.hidden = true;
+    hint.textContent = "Still need " + missing.join(", ") + ".";
+    return;
+  }
+
+  const bmr = i.sex === "m"
+    ? 10*i.nowKg + 6.25*i.cm - 5*i.age + 5
+    : 10*i.nowKg + 6.25*i.cm - 5*i.age - 161;
+
+  const maint = i.act === "logged" ? bmr*1.2 + avgDailyBurn() : bmr*parseFloat(i.act);
+
+  const diff = i.goalKg - i.nowKg;          // negative = losing
+  const losing = diff < 0;
+  const gaining = diff > 0;
+
+  // pace guard: never more than 1% of body weight a week
+  let rate = i.rate;
+  const maxRate = Math.min(1, i.nowKg * 0.01);
+  let paceCapped = false;
+  if(rate > maxRate){ rate = Math.max(0.25, Math.round(maxRate*4)/4); paceCapped = true; }
+  if(gaining) rate = Math.min(rate, 0.5);
+
+  const shift = rate * KCAL_PER_KG / 7;
+  let daily = Math.round(losing ? maint - shift : gaining ? maint + shift : maint);
+
+  // intake floor
+  const floor = i.sex === "m" ? 1500 : 1200;
+  let floored = false;
+  if(daily < floor){ daily = floor; floored = true; }
+
+  const goalBmi = i.goalKg / Math.pow(i.cm/100, 2);
+  const nowBmi = i.nowKg / Math.pow(i.cm/100, 2);
+
+  box.hidden = false;
+  hint.textContent = "Recalculates whenever you change something.";
+
+  document.getElementById("planDaily").textContent = fmt(daily);
+  document.getElementById("planMaint").textContent = fmt(maint);
+  document.getElementById("planBMR").textContent = fmt(bmr);
+  document.getElementById("planWeek").textContent = fmt(daily*7);
+  document.getElementById("planMonth").textContent = fmt(daily*30.4);
+  document.getElementById("planTitle").textContent =
+    losing ? "To reach " + toUnit(i.goalKg).toFixed(1) + " " + DB.prefs.unit
+           : gaining ? "To gain toward " + toUnit(i.goalKg).toFixed(1) + " " + DB.prefs.unit
+           : "To hold steady";
+  document.getElementById("planSub").textContent =
+    "Maintenance is about " + fmt(maint) + " kcal" +
+    (i.act === "logged" ? ", using your logged workouts." : ".");
+
+  const kgToGo = Math.abs(diff);
+  const weeks = rate > 0 ? kgToGo / rate : 0;
+  const eta = new Date(); eta.setDate(eta.getDate() + Math.round(weeks*7));
+  document.getElementById("planEta").textContent = kgToGo < 0.1
+    ? "You're at your goal weight."
+    : toUnit(kgToGo).toFixed(1) + " " + DB.prefs.unit + " to go · about " +
+      (weeks < 1 ? "under a week" : Math.round(weeks) + " week" + (Math.round(weeks)===1?"":"s")) +
+      " at this pace, around " + eta.toLocaleDateString(undefined,{month:"long",year:"numeric"}) + ".";
+
+  const notes = [];
+  if(goalBmi < 18.5) notes.push("That goal weight falls below the healthy BMI range for your height. Worth talking through with a doctor or dietitian before aiming there.");
+  if(paceCapped) notes.push("Pace eased to " + rate + " kg a week — faster than about 1% of body weight tends to cost muscle rather than fat.");
+  if(floored) notes.push("Held at " + fmt(daily) + " kcal, the usual floor for steady, well-fed loss. It means a gentler pace than the one you picked.");
+  if(nowBmi < 18.5 && losing) notes.push("Your current weight is already below the healthy BMI range, so a deficit may not be the right call here.");
+  notes.push("These are estimates from population averages. Your real numbers will differ, and a dietitian can tailor them properly.");
+  document.getElementById("planNote").textContent = notes.join(" ");
+}
+
+function loadPlanFields(){
+  const p = DB.prefs;
+  if(p.sex) document.getElementById("gSex").value = p.sex;
+  if(p.age) document.getElementById("gAge").value = p.age;
+  if(p.cm) document.getElementById("gHeight").value = p.cm;
+  if(p.goalKg) document.getElementById("gGoal").value = toUnit(p.goalKg).toFixed(1);
+  if(p.act) document.getElementById("gAct").value = p.act;
+  if(p.rate) document.getElementById("gRate").value = p.rate;
+}
+
+async function savePlanFields(){
+  DB.prefs.sex = document.getElementById("gSex").value;
+  DB.prefs.age = document.getElementById("gAge").value;
+  DB.prefs.cm  = document.getElementById("gHeight").value;
+  const g = parseFloat(document.getElementById("gGoal").value);
+  DB.prefs.goalKg = (isFinite(g) && g > 0) ? toKg(g) : 0;
+  DB.prefs.act = document.getElementById("gAct").value;
+  DB.prefs.rate = document.getElementById("gRate").value;
+  buildPlan();
+  await save();
+}
+
 /* ---------------- rendering ---------------- */
 function renderDay(){
   const isToday = viewDate === todayISO();
@@ -886,7 +1089,7 @@ function renderWeight(){
   });
 }
 
-function renderAll(){ renderDay(); renderMove(); renderTrends(); renderWeight(); }
+function renderAll(){ renderDay(); renderMove(); renderTrends(); renderWeight(); buildPlan(); }
 
 /* ---------------- events ---------------- */
 document.getElementById("prevDay").onclick=()=>{ viewDate=shiftDate(viewDate,-1); openRow=null; renderDay(); renderMove(); };
@@ -1030,10 +1233,21 @@ document.querySelectorAll("nav.tabs button").forEach(b=>{
   b.onclick=()=>{
     document.querySelectorAll("nav.tabs button").forEach(x=>x.removeAttribute("aria-current"));
     b.setAttribute("aria-current","page");
-    ["log","move","trends","weight"].forEach(v=>document.getElementById("view-"+v).hidden = v!==b.dataset.view);
+    ["log","move","trends","weight","goal"].forEach(v=>document.getElementById("view-"+v).hidden = v!==b.dataset.view);
     window.scrollTo({top:0});
   };
 });
+
+["gSex","gAge","gHeight","gGoal","gAct","gRate"].forEach(id=>{
+  const el=document.getElementById(id);
+  el.addEventListener(el.tagName==="SELECT"?"change":"input", savePlanFields);
+});
+document.getElementById("applyGoal").onclick=async()=>{
+  const v=parseInt(document.getElementById("planDaily").textContent.replace(/[^0-9]/g,""),10);
+  if(!isFinite(v)||v<=0) return;
+  DB.prefs.goal=v; await save(); renderAll();
+  toast("Daily goal set to "+fmt(v));
+};
 
 const dlg=document.getElementById("settings");
 document.getElementById("openSettings").onclick=()=>{
@@ -1105,6 +1319,7 @@ document.getElementById("wipeBtn").onclick=async()=>{
   await load();
   document.getElementById("wDate").value=todayISO();
   document.getElementById("wDate").max=todayISO();
+  loadPlanFields();
   renderAll();
 })();
 </script>
