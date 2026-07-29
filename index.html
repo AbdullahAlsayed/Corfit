@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Corfit">
 <meta name="theme-color" content="#EDEFEA">
-<!-- build 13: meter colour states -->
+<!-- build 16: no backing band -->
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
 <link rel="apple-touch-icon" sizes="167x167" href="icon.png">
@@ -108,6 +108,14 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 .tray button{font:inherit;font-size:13px;font-weight:600;border-radius:8px;padding:7px 13px;cursor:pointer;background:#fff;border:1px solid var(--signal);color:var(--signal)}
 .empty{padding:26px 0;color:var(--spruce);font-size:14.5px;border-bottom:1px solid var(--rule)}
 
+.pinned{position:sticky;top:0;z-index:15;margin:14px 0 18px}
+.pinnedcard{background:var(--paper);border:1px solid var(--rule);border-radius:14px;
+  padding:14px;box-shadow:var(--shadow)}
+.pinned .datestrip{margin:0;padding:0 0 10px;border-top:0;border-bottom:1px solid var(--rule)}
+.pinned-total{margin-top:12px}
+.pinned-total .name{font-size:17px}
+.pinned-total .kcal{font-size:17px}
+
 /* total meter — the signature */
 .total{margin-top:16px}
 .total .line{cursor:default;padding-bottom:6px}
@@ -191,10 +199,24 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
 
   <!-- ================= LOG ================= -->
   <section class="view" id="view-log">
-    <div class="datestrip">
-      <button id="prevDay" aria-label="Previous day">&larr;</button>
-      <span class="day" id="dayLabel">Today</span>
-      <button id="nextDay" aria-label="Next day">&rarr;</button>
+    <div class="pinned">
+     <div class="pinnedcard">
+      <div class="datestrip">
+        <button id="prevDay" aria-label="Previous day">&larr;</button>
+        <span class="day" id="dayLabel">Today</span>
+        <button id="nextDay" aria-label="Next day">&rarr;</button>
+      </div>
+      <div class="total pinned-total">
+        <div class="line">
+          <span class="name">Total</span>
+          <span class="leader"></span>
+          <span class="kcal num" id="dayTotal">0</span>
+        </div>
+        <div class="meter" id="meter"><i style="width:0%"></i></div>
+        <div class="goalnote"><span id="goalLeft">—</span><span id="goalTarget">—</span></div>
+        <div class="goalnote"><span id="netLine"></span></div>
+      </div>
+     </div>
     </div>
 
     <div class="composer">
@@ -229,16 +251,6 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
     <p class="eyebrow">The day's tally</p>
     <ul class="tally" id="foodList"></ul>
 
-    <div class="total">
-      <div class="line">
-        <span class="name">Total</span>
-        <span class="leader"></span>
-        <span class="kcal num" id="dayTotal">0</span>
-      </div>
-      <div class="meter" id="meter"><i style="width:0%"></i></div>
-      <div class="goalnote"><span id="goalLeft">—</span><span id="goalTarget">—</span></div>
-      <div class="goalnote"><span id="netLine"></span></div>
-    </div>
   </section>
 
 
@@ -276,14 +288,6 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
     <p class="eyebrow">Today's movement</p>
     <ul class="tally" id="actList"></ul>
 
-    <div class="total">
-      <div class="line">
-        <span class="name">Burned</span>
-        <span class="leader"></span>
-        <span class="kcal num" id="dayBurn">0</span>
-      </div>
-      <div class="goalnote"><span id="burnNote"></span><span id="burnBasis"></span></div>
-    </div>
   </section>
 
   <!-- ================= TRENDS ================= -->
