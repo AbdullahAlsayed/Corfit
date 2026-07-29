@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Corfit">
 <meta name="theme-color" content="#EDEFEA">
-<!-- github pages build -->
+<!-- build 5: offline food table + Open Food Facts -->
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
 <link rel="apple-touch-icon" sizes="167x167" href="icon.png">
@@ -77,6 +77,13 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 .btn:disabled{opacity:.45;cursor:default}
 .hint{font-size:12.5px;color:var(--spruce);margin:9px 0 0;min-height:1.2em}
 .hint.err{color:var(--signal)}
+
+.results{list-style:none;margin:11px 0 0;padding:0;border-top:1px solid var(--rule)}
+.results li{border-bottom:1px dotted var(--rule)}
+.results button{display:flex;width:100%;gap:9px;align-items:baseline;background:none;border:0;font:inherit;color:var(--ink);text-align:left;padding:10px 0;cursor:pointer}
+.results .rname{flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.results .rsub{flex:1;font-size:12px;color:var(--spruce);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.results .rk{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
 
 /* recents */
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
@@ -198,7 +205,8 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
         <button class="btn ghost" id="lookupBtn">Look up calories</button>
         <button class="btn primary" id="addFood">Add to log</button>
       </div>
-      <p class="hint" id="foodHint">Look it up online, or type the number yourself.</p>
+      <p class="hint" id="foodHint">Search for it, or type the number yourself.</p>
+      <ul class="results" id="results"></ul>
       <div class="chips" id="recents"></div>
     </div>
 
@@ -334,25 +342,92 @@ async function load(){
 }
 
 /* ---------------- calorie lookup ---------------- */
-async function lookupCalories(name, portion){
-  const q = (portion ? portion + " of " : "") + name;
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({
-      model:"claude-sonnet-4-6",
-      max_tokens:1000,
-      system:"You estimate food energy content. Reply with ONLY a JSON object, no prose and no markdown fences: {\"kcal\": <integer>, \"basis\": \"<max 8 words naming the portion you assumed>\"}. If no portion is given, assume one typical serving.",
-      messages:[{role:"user",content:"Calories in: "+q}]
+/* Built-in table: works with no connection at all. kcal per stated portion. */
+const FOODS = [
+["chicken shawarma wrap",520,"1 wrap"],["beef shawarma wrap",580,"1 wrap"],["shawarma plate",700,"1 plate"],
+["falafel",60,"1 piece"],["falafel sandwich",350,"1 sandwich"],["taameya",60,"1 piece"],
+["koshari",600,"1 plate"],["foul medames",180,"1 cup"],["hummus",70,"2 tbsp"],["baba ganoush",80,"2 tbsp"],
+["pita bread",165,"1 loaf"],["baladi bread",190,"1 loaf"],["shish tawook",300,"1 skewer"],
+["kebab",280,"1 skewer"],["kofta",250,"1 skewer"],["molokhia",150,"1 cup"],["mahshi",200,"1 cup"],
+["macaroni bechamel",450,"1 slice"],["fattah",550,"1 plate"],["feteer",400,"1 slice"],
+["konafa",350,"1 piece"],["basbousa",300,"1 piece"],["baklava",130,"1 piece"],["rice pudding",250,"1 cup"],
+["white rice",205,"1 cup cooked"],["basmati rice",210,"1 cup cooked"],["rice with chicken",650,"1 plate"],
+["pasta",220,"1 cup cooked"],["lentil soup",180,"1 cup"],["green salad",50,"1 bowl"],["shakshuka",250,"1 serving"],
+["boiled egg",78,"1 egg"],["fried egg",90,"1 egg"],["omelette",220,"2 eggs"],
+["grilled chicken breast",165,"100 g"],["chicken thigh",210,"100 g"],["fried chicken",320,"1 piece"],
+["beef steak",250,"100 g"],["grilled fish",180,"100 g"],["salmon",208,"100 g"],["shrimp",100,"100 g"],
+["tuna in water",100,"100 g"],["white bread",80,"1 slice"],["brown bread",75,"1 slice"],
+["oats",150,"1/2 cup dry"],["banana",105,"1 medium"],["apple",95,"1 medium"],["orange",62,"1 medium"],
+["grapes",62,"1 cup"],["watermelon",46,"1 cup"],["mango",200,"1 medium"],["dates",66,"1 date"],
+["full fat milk",150,"1 cup"],["skim milk",85,"1 cup"],["plain yogurt",150,"1 cup"],["greek yogurt",100,"170 g"],
+["white cheese",80,"30 g"],["cheddar cheese",115,"30 g"],["olive oil",120,"1 tbsp"],["butter",100,"1 tbsp"],
+["almonds",165,"28 g"],["peanuts",160,"28 g"],["potato chips",150,"28 g"],["french fries",365,"medium"],
+["pizza",285,"1 slice"],["burger",550,"1 burger"],["cheese sandwich",350,"1 sandwich"],["croissant",230,"1"],
+["donut",250,"1"],["chocolate bar",230,"1 bar"],["ice cream",210,"1/2 cup"],["biscuit",50,"1"],
+["black coffee",2,"1 cup"],["coffee with milk",60,"1 cup"],["cappuccino",120,"1 cup"],["latte",190,"1 cup"],
+["tea",2,"1 cup"],["tea with sugar",40,"1 cup"],["orange juice",110,"1 cup"],["cola",140,"330 ml"],
+["diet cola",0,"330 ml"],["water",0,"any"],["protein shake",120,"1 scoop"]
+];
+
+function localMatches(q){
+  const ql = q.toLowerCase().trim();
+  if(!ql) return [];
+  const words = ql.split(/\s+/);
+  return FOODS
+    .map(f => {
+      let score = 0;
+      if (f[0] === ql) score = 100;
+      else if (f[0].includes(ql)) score = 60;
+      else score = words.filter(w => w.length > 2 && f[0].includes(w)).length * 20;
+      return {score, name:f[0], kcal:f[1], sub:f[2]};
     })
+    .filter(x => x.score > 0)
+    .sort((a,b) => b.score - a.score)
+    .slice(0,5)
+    .map(x => ({name:x.name.replace(/^./, c=>c.toUpperCase()), sub:x.sub, kcal:x.kcal}));
+}
+
+async function offMatches(q){
+  const url = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" + encodeURIComponent(q) +
+              "&search_simple=1&action=process&json=1&page_size=12" +
+              "&fields=product_name,brands,serving_size,nutriments";
+  const r = await fetch(url);
+  if(!r.ok) throw new Error("http " + r.status);
+  const d = await r.json();
+  const out = [];
+  (d.products || []).forEach(p => {
+    const n = (p.product_name || "").trim();
+    if(!n) return;
+    const nut = p.nutriments || {};
+    const brand = (p.brands || "").split(",")[0].trim();
+    const serv = nut["energy-kcal_serving"], hundred = nut["energy-kcal_100g"];
+    if (serv > 0) out.push({name:n, sub:(brand?brand+" · ":"") + (p.serving_size || "per serving"), kcal:Math.round(serv)});
+    else if (hundred > 0) out.push({name:n, sub:(brand?brand+" · ":"") + "100 g", kcal:Math.round(hundred)});
   });
-  if(!res.ok) throw new Error("http "+res.status);
-  const data = await res.json();
-  const text = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("").replace(/```json|```/g,"").trim();
-  const m = text.match(/\{[\s\S]*\}/);
-  const out = JSON.parse(m ? m[0] : text);
-  if (typeof out.kcal !== "number" || !isFinite(out.kcal)) throw new Error("bad payload");
-  return out;
+  return out.slice(0,8);
+}
+
+function showResults(list){
+  const box = document.getElementById("results");
+  box.innerHTML = "";
+  list.forEach(r => {
+    const li = document.createElement("li");
+    const b = document.createElement("button");
+    b.innerHTML = '<span class="rname"></span><span class="rsub"></span><span class="rk">' + r.kcal + '</span>';
+    b.querySelector(".rname").textContent = r.name;
+    b.querySelector(".rsub").textContent = r.sub;
+    b.onclick = () => {
+      document.getElementById("fName").value = r.name;
+      document.getElementById("fPortion").value = r.sub;
+      document.getElementById("fKcal").value = r.kcal;
+      document.getElementById("fKcal").dataset.basis = r.sub;
+      box.innerHTML = "";
+      document.getElementById("foodHint").textContent = "Adjust the number if your portion was different.";
+      document.getElementById("foodHint").classList.remove("err");
+    };
+    li.appendChild(b);
+    box.appendChild(li);
+  });
 }
 
 /* ---------------- rendering ---------------- */
@@ -515,20 +590,25 @@ document.getElementById("nextDay").onclick=()=>{ if(viewDate<todayISO()){ viewDa
 
 document.getElementById("lookupBtn").onclick=async()=>{
   const name=document.getElementById("fName").value.trim();
-  const portion=document.getElementById("fPortion").value.trim();
   const hint=document.getElementById("foodHint");
   const btn=document.getElementById("lookupBtn");
   hint.classList.remove("err");
+  document.getElementById("results").innerHTML="";
   if(!name){ hint.textContent="Type what you ate first, then look it up."; hint.classList.add("err"); return; }
-  btn.disabled=true; btn.textContent="Looking up…"; hint.textContent="Checking "+name+"…";
+
+  const local = localMatches(name);
+  if(local.length){ showResults(local); hint.textContent="Tap a match, or keep searching online."; }
+
+  btn.disabled=true; btn.textContent="Searching…";
   try{
-    const r=await lookupCalories(name,portion);
-    document.getElementById("fKcal").value=Math.round(r.kcal);
-    document.getElementById("fKcal").dataset.basis=r.basis||"";
-    hint.textContent="Estimate for "+(r.basis||"one serving")+". Adjust it if that's not your portion.";
+    const online = await offMatches(name);
+    const seen=new Set(local.map(r=>r.name.toLowerCase()+r.kcal));
+    const merged = local.concat(online.filter(r=>!seen.has(r.name.toLowerCase()+r.kcal)));
+    if(merged.length){ showResults(merged); hint.textContent="Tap the closest match."; }
+    else { hint.textContent="No match found. Type the calories yourself and add it."; hint.classList.add("err"); }
   }catch(e){
-    hint.textContent="Couldn't reach the lookup. Enter the calories yourself and add it.";
-    hint.classList.add("err");
+    if(local.length) hint.textContent="Offline — showing built-in matches only.";
+    else { hint.textContent="No match offline. Type the calories yourself and add it."; hint.classList.add("err"); }
   }
   btn.disabled=false; btn.textContent="Look up calories";
 };
