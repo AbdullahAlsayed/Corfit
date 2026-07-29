@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Corfit">
 <meta name="theme-color" content="#EDEFEA">
-<!-- build 17: restored burned total -->
+<!-- build 18: net total drives the meter -->
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
 <link rel="apple-touch-icon" sizes="167x167" href="icon.png">
@@ -208,7 +208,7 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
       </div>
       <div class="total pinned-total">
         <div class="line">
-          <span class="name">Total</span>
+          <span class="name">Net</span>
           <span class="leader"></span>
           <span class="kcal num" id="dayTotal">0</span>
         </div>
@@ -970,7 +970,9 @@ function renderDay(){
     list.appendChild(li);
   });
 
-  const total = rows.reduce((s,f)=>s+f.kcal,0);
+  const intake = rows.reduce((s,f)=>s+f.kcal,0);
+  const burned = burnOn(viewDate);
+  const total = intake - burned;                    // what actually counts against the goal
   const goal = DB.prefs.goal||0;
   document.getElementById("dayTotal").textContent = fmt(total);
   const ratio = goal ? total/goal : 0;
@@ -979,7 +981,7 @@ function renderDay(){
   const over = goal>0 && total > goal;
   meter.classList.toggle("warn", near);
   meter.classList.toggle("over", over);
-  meter.firstElementChild.style.width = (goal ? Math.min(100, ratio*100) : 0)+"%";
+  meter.firstElementChild.style.width = (goal ? Math.max(0, Math.min(100, ratio*100)) : 0)+"%";
   document.getElementById("dayTotal").classList.toggle("over", over);
   document.getElementById("goalTarget").textContent = goal ? "Goal "+fmt(goal) : "No goal set";
   const left = document.getElementById("goalLeft");
@@ -988,8 +990,9 @@ function renderDay(){
     : over ? fmt(total-goal)+" over · "+Math.round(ratio*100)+"% of goal"
     : fmt(goal-total)+" left";
 
-  const burned = burnOn(viewDate);
-  document.getElementById("netLine").textContent = burned ? "− " + fmt(burned) + " burned · net " + fmt(total - burned) : "";
+  document.getElementById("netLine").textContent = burned
+    ? fmt(intake) + " eaten − " + fmt(burned) + " burned"
+    : (intake ? fmt(intake) + " eaten" : "");
 
   // recents
   const seen=new Map();
