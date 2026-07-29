@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Corfit">
 <meta name="theme-color" content="#EDEFEA">
-<!-- build 8: personal food library -->
+<!-- build 10: live burn recalculation -->
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
 <link rel="apple-touch-icon" sizes="167x167" href="icon.png">
@@ -130,6 +130,7 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 .bars .bar{flex:1;background:var(--spruce);border-radius:3px 3px 0 0;min-height:2px;opacity:.85}
 .bars .bar.over{background:var(--signal)}
 .bars .bar.zero{background:var(--rule)}
+.bars .bar.burn{background:var(--cobalt);opacity:.8}
 .goalline{position:absolute;left:0;right:0;border-top:1px dashed var(--cobalt);pointer-events:none}
 .goalline b{position:absolute;right:0;top:-16px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--cobalt);background:var(--paper);padding:0 3px;font-weight:600}
 .xaxis{display:flex;gap:4px;margin-top:6px}
@@ -151,7 +152,7 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 nav.tabs{position:fixed;left:0;right:0;bottom:0;background:rgba(237,239,234,.94);
   backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
   border-top:1px solid var(--rule);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:20}
-nav.tabs button{flex:1;background:none;border:0;font:inherit;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+nav.tabs button{flex:1;background:none;border:0;font:inherit;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
   font-weight:600;color:var(--spruce);padding:15px 4px;cursor:pointer;position:relative}
 nav.tabs button[aria-current=page]{color:var(--ink)}
 nav.tabs button[aria-current=page]::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:9px;width:16px;height:2px;background:var(--ink)}
@@ -229,6 +230,52 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
       </div>
       <div class="meter" id="meter"><i style="width:0%"></i></div>
       <div class="goalnote"><span id="goalLeft">—</span><span id="goalTarget">—</span></div>
+      <div class="goalnote"><span id="netLine"></span></div>
+    </div>
+  </section>
+
+
+  <!-- ================= ACTIVITY ================= -->
+  <section class="view" id="view-move" hidden>
+    <div class="datestrip">
+      <button id="prevDayA" aria-label="Previous day">&larr;</button>
+      <span class="day" id="dayLabelA">Today</span>
+      <button id="nextDayA" aria-label="Next day">&rarr;</button>
+    </div>
+
+    <div class="composer">
+      <div class="field">
+        <label for="aName">What did you do?</label>
+        <input type="text" id="aName" placeholder="Brisk walking" autocomplete="off">
+      </div>
+      <div class="row2">
+        <div class="field kcalfield">
+          <label for="aMin">Minutes</label>
+          <input type="number" id="aMin" placeholder="30" inputmode="numeric" min="0" step="1">
+        </div>
+        <div class="field kcalfield">
+          <label for="aKcal">Burned</label>
+          <input type="number" id="aKcal" placeholder="0" inputmode="numeric" min="0" step="1">
+        </div>
+      </div>
+      <div class="btnrow">
+        <button class="btn primary" id="addAct">Add activity</button>
+      </div>
+      <p class="hint" id="actHint">Start typing to find an activity. Burn follows the minutes.</p>
+      <ul class="results" id="actResults"></ul>
+      <div class="chips" id="actRecents"></div>
+    </div>
+
+    <p class="eyebrow">Today's movement</p>
+    <ul class="tally" id="actList"></ul>
+
+    <div class="total">
+      <div class="line">
+        <span class="name">Burned</span>
+        <span class="leader"></span>
+        <span class="kcal num" id="dayBurn">0</span>
+      </div>
+      <div class="goalnote"><span id="burnNote"></span><span id="burnBasis"></span></div>
     </div>
   </section>
 
@@ -238,6 +285,8 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
     <div class="stats">
       <div class="stat"><b class="num" id="sToday">0</b><small>Today</small></div>
       <div class="stat"><b class="num" id="sAvg7">0</b><small>7-day average</small></div>
+      <div class="stat"><b class="num" id="sBurn">0</b><small>Burned today</small></div>
+      <div class="stat"><b class="num" id="sNet">0</b><small>Net today</small></div>
       <div class="stat"><b class="num" id="sAvg30">0</b><small>30-day average</small></div>
       <div class="stat"><b class="num" id="sDays">0</b><small>Days logged</small></div>
     </div>
@@ -247,6 +296,13 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
       <p class="sub" id="barSub">Dashed line is your daily goal.</p>
       <div class="bars" id="bars"><div class="goalline" id="goalline"><b>Goal</b></div></div>
       <div class="xaxis" id="xaxis"></div>
+    </div>
+
+    <div class="card">
+      <h3>Burned, last 14 days</h3>
+      <p class="sub" id="burnSub">From the activities you log.</p>
+      <div class="bars" id="burnBars"></div>
+      <div class="xaxis" id="burnAxis"></div>
     </div>
 
     <div class="card">
@@ -288,6 +344,7 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
 
 <nav class="tabs">
   <button data-view="log" aria-current="page">Log</button>
+  <button data-view="move">Activity</button>
   <button data-view="trends">Dashboard</button>
   <button data-view="weight">Weight</button>
 </nav>
@@ -335,7 +392,7 @@ const Store = {
   }
 };
 
-let DB = { foods: [], weights: [], custom: [], prefs: { goal: 2000, unit: "kg" } };
+let DB = { foods: [], weights: [], acts: [], custom: [], customActs: [], prefs: { goal: 2000, unit: "kg" } };
 let viewDate = todayISO();
 let openRow = null;
 
@@ -349,7 +406,7 @@ async function save(){ const ok = await Store.set(KEY, JSON.stringify(DB)); if(!
 async function load(){
   let raw = await Store.get(KEY);
   if (!raw) raw = await Store.get(OLD_KEY);   // carry over earlier entries
-  if (raw) { try { const p = JSON.parse(raw); DB = { foods:p.foods||[], weights:p.weights||[], custom:p.custom||[], prefs:Object.assign({goal:2000,unit:"kg"},p.prefs||{}) }; } catch(e){} }
+  if (raw) { try { const p = JSON.parse(raw); DB = { foods:p.foods||[], weights:p.weights||[], acts:p.acts||[], custom:p.custom||[], customActs:p.customActs||[], prefs:Object.assign({goal:2000,unit:"kg"},p.prefs||{}) }; } catch(e){} }
 }
 
 /* ---------------- calorie lookup ---------------- */
@@ -498,6 +555,148 @@ function showResults(list){
   });
 }
 
+
+/* ---------------- activity ---------------- */
+/* [name, MET]. Burn = MET × 3.5 × body kg ÷ 200, per minute. */
+const ACTS = [
+["Walking, slow",2.8],["Walking, brisk",4.3],["Walking uphill",6.0],["Walking the dog",3.0],
+["Hiking",6.0],["Running 8 km/h",8.3],["Running 10 km/h",9.8],["Running 12 km/h",11.8],
+["Jogging, light",7.0],["Treadmill, moderate",7.0],["Sprint intervals",12.0],
+["Cycling, leisurely",4.0],["Cycling, moderate",8.0],["Cycling, vigorous",10.0],["Stationary bike",7.0],
+["Spinning class",8.5],["Swimming, leisurely",6.0],["Swimming laps",8.3],["Water aerobics",5.5],
+["Weight training, light",3.5],["Weight training, vigorous",6.0],["Bodyweight circuit",8.0],
+["CrossFit",8.0],["HIIT",8.0],["Rowing machine",7.0],["Elliptical",5.0],["Stair climbing",8.8],
+["Jump rope",12.3],["Boxing, bag work",7.8],["Boxing, sparring",9.0],["Martial arts",10.3],
+["Yoga",2.5],["Power yoga",4.0],["Pilates",3.0],["Stretching",2.3],["Foam rolling",2.0],
+["Football",7.0],["Basketball",6.5],["Tennis",7.3],["Padel",6.0],["Squash",7.3],["Table tennis",4.0],
+["Volleyball",4.0],["Badminton",5.5],["Golf, walking",4.8],["Skiing",7.0],["Skating",7.0],
+["Dancing",5.0],["Zumba",6.5],["Aerobics class",6.5],["Rock climbing",8.0],["Kayaking",5.0],
+["Horse riding",5.5],["Surfing",3.0],["Housework",3.3],["Cleaning, vigorous",3.8],["Gardening",3.8],
+["Grocery shopping",2.3],["Cooking",2.0],["Playing with kids",4.0],["Carrying heavy loads",6.5],
+["Manual labour",5.5],["Standing desk work",2.0],["Office work",1.5],["Physiotherapy exercises",3.0]
+];
+const ACT_KEYS = new Set(ACTS.map(a => a[0].toLowerCase()));
+
+function bodyKg(){
+  const ws = [...(DB.weights||[])].sort((a,b) => b.date.localeCompare(a.date));
+  return ws.length ? ws[0].kg : 70;
+}
+function burnPerMin(met){ return met * 3.5 * bodyKg() / 200; }
+
+function actMatches(q){
+  const ql = q.toLowerCase().trim();
+  if(ql.length < 2) return [];
+  const words = ql.split(/\s+/);
+  const mins = parseFloat(document.getElementById("aMin").value);
+  const m = (isFinite(mins) && mins > 0) ? mins : 30;
+  const rows = [];
+  (DB.customActs || []).forEach(c => {
+    const sc = scoreName(c.name, ql, words);
+    if (sc > 0) rows.push({sc: sc + 200, name: c.name, sub: m + " min · saved", kcal: Math.round(c.kpm * m), kpm: c.kpm});
+  });
+  ACTS.forEach(a => {
+    const sc = scoreName(a[0], ql, words);
+    if (sc > 0) rows.push({sc, name: a[0], sub: m + " min", kcal: Math.round(burnPerMin(a[1]) * m), kpm: burnPerMin(a[1])});
+  });
+  return rows.sort((x,y) => y.sc - x.sc).slice(0, 8);
+}
+
+function showActResults(list){
+  const box = document.getElementById("actResults");
+  box.innerHTML = "";
+  list.forEach(r => {
+    const li = document.createElement("li");
+    const b = document.createElement("button");
+    b.innerHTML = '<span class="rname"></span><span class="rsub"></span><span class="rk">' + r.kcal + '</span>';
+    b.querySelector(".rname").textContent = r.name;
+    b.querySelector(".rsub").textContent = r.sub;
+    b.onclick = () => {
+      document.getElementById("aName").value = r.name;
+      if(!document.getElementById("aMin").value) document.getElementById("aMin").value = 30;
+      const k = document.getElementById("aKcal");
+      k.value = r.kcal;
+      k.dataset.kpm = r.kpm;
+      box.innerHTML = "";
+      document.getElementById("actHint").textContent = "Change the minutes and the burn follows.";
+      document.getElementById("actHint").classList.remove("err");
+    };
+    li.appendChild(b);
+    box.appendChild(li);
+  });
+}
+
+function rememberAct(name, kpm){
+  const key = name.toLowerCase().trim();
+  if(!key || key === "activity" || ACT_KEYS.has(key)) return false;
+  const f = (DB.customActs || []).find(c => c.name.toLowerCase() === key);
+  if(f){ f.kpm = kpm; f.n = (f.n||1)+1; return false; }
+  DB.customActs.push({name, kpm, n:1, ts:Date.now()});
+  return true;
+}
+
+function burnOn(date){ return (DB.acts||[]).filter(a => a.date === date).reduce((s,a) => s + a.kcal, 0); }
+
+function renderMove(){
+  const isToday = viewDate === todayISO();
+  document.getElementById("dayLabelA").textContent = isToday ? "Today" :
+    new Date(viewDate+"T12:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+  document.getElementById("nextDayA").disabled = isToday;
+
+  const rows = (DB.acts||[]).filter(a => a.date === viewDate).sort((a,b) => a.ts - b.ts);
+  const list = document.getElementById("actList");
+  list.innerHTML = "";
+  if(!rows.length){
+    const li = document.createElement("li");
+    li.innerHTML = '<p class="empty">Nothing logged for this day. Add a walk, a session, anything.</p>';
+    list.appendChild(li);
+  }
+  rows.forEach(a => {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.className = "line";
+    btn.innerHTML = '<span class="name"></span><span class="portion"></span><span class="leader"></span><span class="kcal">' + fmt(a.kcal) + '</span>';
+    btn.querySelector(".name").textContent = a.name;
+    btn.querySelector(".portion").textContent = a.min ? "· " + a.min + " min" : "";
+    btn.onclick = () => { openRow = openRow === a.id ? null : a.id; renderMove(); };
+    li.appendChild(btn);
+    if(openRow === a.id){
+      const tray = document.createElement("div");
+      tray.className = "tray";
+      tray.innerHTML = '<span class="meta">Logged ' + new Date(a.ts).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}) + '</span>';
+      const del = document.createElement("button");
+      del.textContent = "Delete";
+      del.onclick = async () => { DB.acts = DB.acts.filter(x => x.id !== a.id); openRow = null; await save(); renderAll(); toast("Deleted"); };
+      tray.appendChild(del);
+      li.appendChild(tray);
+    }
+    list.appendChild(li);
+  });
+
+  document.getElementById("dayBurn").textContent = fmt(burnOn(viewDate));
+  const ws = (DB.weights||[]).length;
+  document.getElementById("burnBasis").textContent = ws ? "Based on " + toUnit(bodyKg()).toFixed(1) + " " + DB.prefs.unit
+                                                       : "Estimated at 70 kg — record your weight";
+  const seen = new Map();
+  [...(DB.acts||[])].sort((a,b) => b.ts - a.ts).forEach(a => {
+    const k = a.name.toLowerCase();
+    if(!seen.has(k) && seen.size < 6) seen.set(k, a);
+  });
+  const chips = document.getElementById("actRecents");
+  chips.innerHTML = "";
+  [...seen.values()].forEach(a => {
+    const c = document.createElement("button");
+    c.className = "chip";
+    c.innerHTML = '<span class="cn"></span><span>' + fmt(a.kcal) + '</span>';
+    c.querySelector(".cn").textContent = a.name;
+    c.onclick = () => {
+      document.getElementById("aName").value = a.name;
+      document.getElementById("aMin").value = a.min || "";
+      document.getElementById("aKcal").value = a.kcal;
+    };
+    chips.appendChild(c);
+  });
+}
+
 /* ---------------- rendering ---------------- */
 function renderDay(){
   const isToday = viewDate === todayISO();
@@ -546,6 +745,9 @@ function renderDay(){
   document.getElementById("goalTarget").textContent = goal ? "Goal "+fmt(goal) : "No goal set";
   document.getElementById("goalLeft").textContent = !goal ? "" : total>goal ? fmt(total-goal)+" over" : fmt(goal-total)+" left";
 
+  const burned = burnOn(viewDate);
+  document.getElementById("netLine").textContent = burned ? "− " + fmt(burned) + " burned · net " + fmt(total - burned) : "";
+
   // recents
   const seen=new Map();
   [...DB.foods].sort((a,b)=>b.ts-a.ts).forEach(f=>{ const k=f.name.toLowerCase(); if(!seen.has(k)&&seen.size<8) seen.set(k,f); });
@@ -578,6 +780,27 @@ function renderTrends(){
   document.getElementById("sAvg7").textContent=logged7.length?fmt(logged7.reduce((s,d)=>s+d.total,0)/logged7.length):"—";
   document.getElementById("sAvg30").textContent=logged30.length?fmt(logged30.reduce((s,d)=>s+d.total,0)/logged30.length):"—";
   document.getElementById("sDays").textContent=new Set(DB.foods.map(f=>f.date)).size;
+  const bToday=burnOn(todayISO());
+  const eToday=DB.foods.filter(f=>f.date===todayISO()).reduce((s,f)=>s+f.kcal,0);
+  document.getElementById("sBurn").textContent=fmt(bToday);
+  document.getElementById("sNet").textContent=fmt(eToday-bToday);
+
+  const bt=t14.map(d=>({date:d.date,total:burnOn(d.date)}));
+  const bmax=Math.max(...bt.map(d=>d.total),1);
+  const bbox=document.getElementById("burnBars");
+  bbox.innerHTML="";
+  bt.forEach(d=>{
+    const b=document.createElement("div");
+    b.className="bar burn"+(d.total===0?" zero":"");
+    b.style.height=Math.max(2,(d.total/bmax)*100)+"%";
+    b.title=d.date+": "+fmt(d.total)+" kcal";
+    bbox.appendChild(b);
+  });
+  const bsum=bt.reduce((s,d)=>s+d.total,0);
+  document.getElementById("burnSub").textContent = bsum
+    ? fmt(bsum)+" kcal over 14 days · "+fmt(bsum/14)+" a day"
+    : "No activity logged yet.";
+  document.getElementById("burnAxis").innerHTML=document.getElementById("xaxis").innerHTML;
 
   const max=Math.max(goal*1.15, ...t14.map(d=>d.total), 1);
   const bars=document.getElementById("bars");
@@ -650,11 +873,11 @@ function renderWeight(){
   });
 }
 
-function renderAll(){ renderDay(); renderTrends(); renderWeight(); }
+function renderAll(){ renderDay(); renderMove(); renderTrends(); renderWeight(); }
 
 /* ---------------- events ---------------- */
-document.getElementById("prevDay").onclick=()=>{ viewDate=shiftDate(viewDate,-1); openRow=null; renderDay(); };
-document.getElementById("nextDay").onclick=()=>{ if(viewDate<todayISO()){ viewDate=shiftDate(viewDate,1); openRow=null; renderDay(); } };
+document.getElementById("prevDay").onclick=()=>{ viewDate=shiftDate(viewDate,-1); openRow=null; renderDay(); renderMove(); };
+document.getElementById("nextDay").onclick=()=>{ if(viewDate<todayISO()){ viewDate=shiftDate(viewDate,1); openRow=null; renderDay(); renderMove(); } };
 
 let searchTimer=null;
 document.getElementById("fName").oninput=()=>{
@@ -669,6 +892,47 @@ document.getElementById("fName").oninput=()=>{
 document.getElementById("fPortion").oninput=()=>{
   const q=document.getElementById("fName").value.trim();
   if(q.length>1){ const hits=localMatches(q); if(hits.length) showResults(hits); }
+};
+
+document.getElementById("prevDayA").onclick=()=>{ viewDate=shiftDate(viewDate,-1); openRow=null; renderDay(); renderMove(); };
+document.getElementById("nextDayA").onclick=()=>{ if(viewDate<todayISO()){ viewDate=shiftDate(viewDate,1); openRow=null; renderDay(); renderMove(); } };
+
+let actTimer=null;
+document.getElementById("aName").oninput=()=>{
+  clearTimeout(actTimer);
+  actTimer=setTimeout(()=>{
+    const hits=actMatches(document.getElementById("aName").value.trim());
+    if(hits.length) showActResults(hits); else document.getElementById("actResults").innerHTML="";
+  },220);
+};
+document.getElementById("aMin").oninput=()=>{
+  const k=document.getElementById("aKcal");
+  const mins=parseFloat(document.getElementById("aMin").value);
+  const kpm=parseFloat(k.dataset.kpm||"");
+  if(isFinite(kpm)&&isFinite(mins)&&mins>0) k.value=Math.round(kpm*mins);
+  else if(isFinite(kpm)) k.value="";
+  const q=document.getElementById("aName").value.trim();
+  if(q.length>1){ const hits=actMatches(q); if(hits.length) showActResults(hits); }
+};
+
+/* typing your own number takes over from the library rate */
+document.getElementById("aKcal").oninput=()=>{ delete document.getElementById("aKcal").dataset.kpm; };
+
+document.getElementById("addAct").onclick=async()=>{
+  const name=document.getElementById("aName").value.trim() || "Activity";
+  const min=parseFloat(document.getElementById("aMin").value);
+  const kcal=parseFloat(document.getElementById("aKcal").value);
+  const hint=document.getElementById("actHint");
+  hint.classList.remove("err");
+  if(!isFinite(kcal)||kcal<0){ hint.textContent="Add a burn number, or tap a match above."; hint.classList.add("err"); return; }
+  const mins=(isFinite(min)&&min>0)?Math.round(min):0;
+  const isNew = mins ? rememberAct(name, kcal/mins) : false;
+  DB.acts.push({id:uid(),date:viewDate,name,min:mins,kcal:Math.round(kcal),ts:Date.now()});
+  ["aName","aMin","aKcal"].forEach(id=>document.getElementById(id).value="");
+  delete document.getElementById("aKcal").dataset.kpm;
+  document.getElementById("actResults").innerHTML="";
+  hint.textContent = isNew ? "Added, and saved to your activities." : "Added.";
+  await save(); renderAll();
 };
 
 document.getElementById("lookupBtn").onclick=async()=>{
@@ -753,7 +1017,7 @@ document.querySelectorAll("nav.tabs button").forEach(b=>{
   b.onclick=()=>{
     document.querySelectorAll("nav.tabs button").forEach(x=>x.removeAttribute("aria-current"));
     b.setAttribute("aria-current","page");
-    ["log","trends","weight"].forEach(v=>document.getElementById("view-"+v).hidden = v!==b.dataset.view);
+    ["log","move","trends","weight"].forEach(v=>document.getElementById("view-"+v).hidden = v!==b.dataset.view);
     window.scrollTo({top:0});
   };
 });
@@ -788,6 +1052,10 @@ document.getElementById("importFile").onchange=async(e)=>{
     (p.foods||[]).forEach(x=>{ if(x&&x.id&&!ids.has(x.id)){ DB.foods.push(x); nf++; } });
     const dates=new Set(DB.weights.map(x=>x.date));
     (p.weights||[]).forEach(x=>{ if(x&&x.date&&!dates.has(x.date)){ DB.weights.push(x); nw++; } });
+    const aid=new Set((DB.acts||[]).map(a=>a.id));
+    (p.acts||[]).forEach(a=>{ if(a&&a.id&&!aid.has(a.id)) DB.acts.push(a); });
+    const ak=new Set((DB.customActs||[]).map(c=>c.name.toLowerCase()));
+    (p.customActs||[]).forEach(c=>{ if(c&&c.name&&!ak.has(c.name.toLowerCase())) DB.customActs.push(c); });
     const ck=new Set((DB.custom||[]).map(c=>c.name.toLowerCase()));
     (p.custom||[]).forEach(c=>{ if(c&&c.name&&!ck.has(c.name.toLowerCase())) DB.custom.push(c); });
     if(p.prefs) DB.prefs=Object.assign(DB.prefs,p.prefs);
@@ -814,7 +1082,7 @@ document.getElementById("clearCustom").onclick=async()=>{
 document.getElementById("wipeBtn").onclick=async()=>{
   const h=document.getElementById("setHint");
   if(h.dataset.armed!=="1"){ h.dataset.armed="1"; h.textContent="Tap again to erase every food and weight record."; h.classList.add("err"); return; }
-  DB={foods:[],weights:[],custom:[],prefs:DB.prefs};
+  DB={foods:[],weights:[],acts:[],custom:[],customActs:[],prefs:DB.prefs};
   h.dataset.armed="0"; h.classList.remove("err"); h.textContent="Everything erased.";
   await save(); renderAll();
 };
