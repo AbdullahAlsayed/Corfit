@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Corfit">
 <meta name="theme-color" content="#EDEFEA">
-<!-- build 12: goal planner -->
+<!-- build 13: meter colour states -->
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
 <link rel="apple-touch-icon" sizes="167x167" href="icon.png">
@@ -28,6 +28,8 @@
   --rule:#C9CFC5;
   --cobalt:#1F4EE0;
   --signal:#C2410C;
+  --warn:#C9761A;
+  --over:#B3261E;
   --shadow:0 1px 0 rgba(22,33,28,.06);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -113,7 +115,12 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 .total .kcal{font-size:19px;font-weight:500}
 .meter{height:7px;background:#fff;border:1px solid var(--rule);border-radius:99px;overflow:hidden}
 .meter i{display:block;height:100%;background:var(--spruce);border-radius:99px;transition:width .45s cubic-bezier(.2,.8,.2,1)}
-.meter.over i{background:var(--signal)}
+.meter.warn i{background:var(--warn)}
+.meter.over i{background:var(--over)}
+.meter.over{border-color:var(--over)}
+.goalnote .warn{color:var(--warn);font-weight:600}
+.goalnote .over{color:var(--over);font-weight:600}
+#dayTotal.over{color:var(--over)}
 .goalnote{display:flex;justify-content:space-between;font-size:12.5px;color:var(--spruce);margin-top:6px}
 
 /* stats */
@@ -954,12 +961,20 @@ function renderDay(){
   const total = rows.reduce((s,f)=>s+f.kcal,0);
   const goal = DB.prefs.goal||0;
   document.getElementById("dayTotal").textContent = fmt(total);
-  const pct = goal ? Math.min(100,(total/goal)*100) : 0;
+  const ratio = goal ? total/goal : 0;
   const meter = document.getElementById("meter");
-  meter.classList.toggle("over", goal>0 && total>goal);
-  meter.firstElementChild.style.width = (goal ? (total>goal?100:pct) : 0)+"%";
+  const near = goal>0 && ratio >= 0.85 && total <= goal;
+  const over = goal>0 && total > goal;
+  meter.classList.toggle("warn", near);
+  meter.classList.toggle("over", over);
+  meter.firstElementChild.style.width = (goal ? Math.min(100, ratio*100) : 0)+"%";
+  document.getElementById("dayTotal").classList.toggle("over", over);
   document.getElementById("goalTarget").textContent = goal ? "Goal "+fmt(goal) : "No goal set";
-  document.getElementById("goalLeft").textContent = !goal ? "" : total>goal ? fmt(total-goal)+" over" : fmt(goal-total)+" left";
+  const left = document.getElementById("goalLeft");
+  left.className = over ? "over" : near ? "warn" : "";
+  left.textContent = !goal ? ""
+    : over ? fmt(total-goal)+" over · "+Math.round(ratio*100)+"% of goal"
+    : fmt(goal-total)+" left";
 
   const burned = burnOn(viewDate);
   document.getElementById("netLine").textContent = burned ? "− " + fmt(burned) + " burned · net " + fmt(total - burned) : "";
