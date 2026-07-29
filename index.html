@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Corfit">
+<meta name="theme-color" content="#EDEFEA">
+<!-- github pages build -->
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="manifest" href="manifest.json">
+
+<title>Corfit — food & weight log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --porcelain:#EDEFEA;
+  --paper:#F7F8F5;
+  --ink:#16211C;
+  --spruce:#2C4A3B;
+  --rule:#C9CFC5;
+  --cobalt:#1F4EE0;
+  --signal:#C2410C;
+  --shadow:0 1px 0 rgba(22,33,28,.06);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--porcelain);
+  color:var(--ink);
+  font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:16px;line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  padding-bottom:calc(74px + env(safe-area-inset-bottom));
+}
+.wrap{max-width:560px;margin:0 auto;padding:0 18px}
+h1,h2,h3{font-family:"Fraunces",Georgia,serif;font-weight:600;margin:0;letter-spacing:-.01em}
+.num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--spruce);opacity:.75;font-weight:600}
+
+/* header */
+header{padding:calc(14px + env(safe-area-inset-top)) 0 8px}
+.topbar{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.brand{font-size:26px}
+.brand em{font-style:italic;font-weight:400}
+.iconbtn{background:none;border:0;font:inherit;color:var(--spruce);padding:6px;cursor:pointer;font-size:13px;text-decoration:underline;text-underline-offset:3px}
+
+/* date strip */
+.datestrip{display:flex;align-items:center;justify-content:space-between;margin:14px 0 6px;
+  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:8px 0}
+.datestrip button{background:none;border:0;color:var(--ink);font:inherit;padding:4px 10px;cursor:pointer;font-size:18px;line-height:1}
+.datestrip button[disabled]{opacity:.25;cursor:default}
+.datestrip .day{font-family:"Fraunces",serif;font-size:17px}
+
+/* composer */
+.composer{background:var(--paper);border:1px solid var(--rule);border-radius:14px;padding:14px;margin:14px 0 18px;box-shadow:var(--shadow)}
+.field{display:block;margin-bottom:10px}
+.field label{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--spruce);margin-bottom:5px;font-weight:600}
+input[type=text],input[type=number],input[type=date],select{
+  width:100%;font:inherit;color:var(--ink);background:#fff;
+  border:1px solid var(--rule);border-radius:9px;padding:11px 12px;appearance:none}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--cobalt);outline-offset:2px}
+.row2{display:flex;gap:10px}
+.row2 .field{flex:1;margin-bottom:10px}
+.kcalfield input{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.btnrow{display:flex;gap:8px;margin-top:2px}
+.btn{flex:1;font:inherit;font-weight:600;border-radius:9px;padding:12px;border:1px solid var(--ink);cursor:pointer}
+.btn.primary{background:var(--ink);color:var(--paper)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--rule)}
+.btn:disabled{opacity:.45;cursor:default}
+.hint{font-size:12.5px;color:var(--spruce);margin:9px 0 0;min-height:1.2em}
+.hint.err{color:var(--signal)}
+
+/* recents */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.chip{font:inherit;font-size:13px;background:#fff;border:1px solid var(--rule);border-radius:999px;padding:6px 11px;cursor:pointer;color:var(--ink)}
+.chip span{font-family:"IBM Plex Mono",monospace;color:var(--spruce);font-size:12px;margin-left:5px}
+
+/* tally list */
+.tally{list-style:none;margin:0;padding:0}
+.tally li{border-bottom:1px dotted var(--rule)}
+.line{display:flex;align-items:flex-end;gap:8px;width:100%;background:none;border:0;font:inherit;color:var(--ink);text-align:left;padding:11px 0;cursor:pointer}
+.line .name{flex:0 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62%}
+.line .portion{font-size:12.5px;color:var(--spruce);white-space:nowrap}
+.leader{flex:1 1 auto;border-bottom:1px dotted var(--rule);transform:translateY(-5px);min-width:14px}
+.line .kcal{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tray{display:flex;gap:8px;align-items:center;padding:0 0 12px}
+.tray .meta{flex:1;font-size:12.5px;color:var(--spruce)}
+.tray button{font:inherit;font-size:13px;font-weight:600;border-radius:8px;padding:7px 13px;cursor:pointer;background:#fff;border:1px solid var(--signal);color:var(--signal)}
+.empty{padding:26px 0;color:var(--spruce);font-size:14.5px;border-bottom:1px solid var(--rule)}
+
+/* total meter — the signature */
+.total{margin-top:16px}
+.total .line{cursor:default;padding-bottom:6px}
+.total .name{font-family:"Fraunces",serif;font-size:19px}
+.total .kcal{font-size:19px;font-weight:500}
+.meter{height:7px;background:#fff;border:1px solid var(--rule);border-radius:99px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--spruce);border-radius:99px;transition:width .45s cubic-bezier(.2,.8,.2,1)}
+.meter.over i{background:var(--signal)}
+.goalnote{display:flex;justify-content:space-between;font-size:12.5px;color:var(--spruce);margin-top:6px}
+
+/* stats */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:12px;overflow:hidden;margin:14px 0 22px}
+.stat{background:var(--paper);padding:13px 14px}
+.stat b{display:block;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:24px;font-weight:500;letter-spacing:-.02em}
+.stat small{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--spruce);margin-top:3px}
+
+/* bar chart */
+.card{background:var(--paper);border:1px solid var(--rule);border-radius:14px;padding:15px;margin-bottom:18px}
+.card h3{font-size:16px;margin-bottom:3px}
+.card p.sub{margin:0 0 14px;font-size:12.5px;color:var(--spruce)}
+.bars{position:relative;display:flex;align-items:flex-end;gap:4px;height:132px;border-bottom:1px solid var(--rule)}
+.bars .bar{flex:1;background:var(--spruce);border-radius:3px 3px 0 0;min-height:2px;opacity:.85}
+.bars .bar.over{background:var(--signal)}
+.bars .bar.zero{background:var(--rule)}
+.goalline{position:absolute;left:0;right:0;border-top:1px dashed var(--cobalt);pointer-events:none}
+.goalline b{position:absolute;right:0;top:-16px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--cobalt);background:var(--paper);padding:0 3px;font-weight:600}
+.xaxis{display:flex;gap:4px;margin-top:6px}
+.xaxis span{flex:1;text-align:center;font-size:10px;color:var(--spruce)}
+.wchart{width:100%;height:130px;display:block}
+.wchart polyline{fill:none;stroke:var(--cobalt);stroke-width:2;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+.wchart circle{fill:var(--cobalt)}
+.wchart line{stroke:var(--rule);stroke-width:1;vector-effect:non-scaling-stroke}
+
+/* weight list */
+.wlist{list-style:none;margin:0;padding:0}
+.wlist li{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px dotted var(--rule)}
+.wlist .wdate{flex:1;font-size:14.5px}
+.wlist .wval{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:16px}
+.wlist .delta{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--spruce);width:58px;text-align:right}
+.wlist .x{background:none;border:0;color:var(--signal);font:inherit;font-size:18px;padding:2px 4px;cursor:pointer;line-height:1}
+
+/* tabs */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:rgba(237,239,234,.94);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-top:1px solid var(--rule);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:20}
+nav.tabs button{flex:1;background:none;border:0;font:inherit;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  font-weight:600;color:var(--spruce);padding:15px 4px;cursor:pointer;position:relative}
+nav.tabs button[aria-current=page]{color:var(--ink)}
+nav.tabs button[aria-current=page]::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:9px;width:16px;height:2px;background:var(--ink)}
+
+/* settings sheet */
+dialog{border:0;border-radius:16px;padding:0;max-width:400px;width:calc(100% - 32px);background:var(--paper);color:var(--ink)}
+dialog::backdrop{background:rgba(22,33,28,.35)}
+.sheet{padding:20px}
+.sheet h2{font-size:20px;margin-bottom:14px}
+.sheet .btnrow{margin-top:16px}
+.danger{color:var(--signal);border-color:var(--signal)!important}
+.view[hidden]{display:none}
+.saving{position:fixed;top:calc(10px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
+  background:var(--ink);color:var(--paper);font-size:12px;padding:7px 14px;border-radius:99px;z-index:30;opacity:0;transition:opacity .2s}
+.saving.on{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="saving" id="toast" role="status" aria-live="polite"></div>
+
+<div class="wrap">
+  <header>
+    <div class="topbar">
+      <h1 class="brand">Corfit<em>.</em></h1>
+      <button class="iconbtn" id="openSettings">Settings</button>
+    </div>
+  </header>
+
+  <!-- ================= LOG ================= -->
+  <section class="view" id="view-log">
+    <div class="datestrip">
+      <button id="prevDay" aria-label="Previous day">&larr;</button>
+      <span class="day" id="dayLabel">Today</span>
+      <button id="nextDay" aria-label="Next day">&rarr;</button>
+    </div>
+
+    <div class="composer">
+      <div class="field">
+        <label for="fName">What did you eat or drink?</label>
+        <input type="text" id="fName" placeholder="Chicken shawarma wrap" autocomplete="off" enterkeyhint="done">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="fPortion">Amount</label>
+          <input type="text" id="fPortion" placeholder="1 wrap / 200 g" autocomplete="off">
+        </div>
+        <div class="field kcalfield">
+          <label for="fKcal">Calories</label>
+          <input type="number" id="fKcal" placeholder="0" inputmode="numeric" min="0" step="1">
+        </div>
+      </div>
+      <div class="btnrow">
+        <button class="btn ghost" id="lookupBtn">Look up calories</button>
+        <button class="btn primary" id="addFood">Add to log</button>
+      </div>
+      <p class="hint" id="foodHint">Look it up online, or type the number yourself.</p>
+      <div class="chips" id="recents"></div>
+    </div>
+
+    <p class="eyebrow">The day's tally</p>
+    <ul class="tally" id="foodList"></ul>
+
+    <div class="total">
+      <div class="line">
+        <span class="name">Total</span>
+        <span class="leader"></span>
+        <span class="kcal num" id="dayTotal">0</span>
+      </div>
+      <div class="meter" id="meter"><i style="width:0%"></i></div>
+      <div class="goalnote"><span id="goalLeft">—</span><span id="goalTarget">—</span></div>
+    </div>
+  </section>
+
+  <!-- ================= TRENDS ================= -->
+  <section class="view" id="view-trends" hidden>
+    <p class="eyebrow" style="margin-top:16px">Dashboard</p>
+    <div class="stats">
+      <div class="stat"><b class="num" id="sToday">0</b><small>Today</small></div>
+      <div class="stat"><b class="num" id="sAvg7">0</b><small>7-day average</small></div>
+      <div class="stat"><b class="num" id="sAvg30">0</b><small>30-day average</small></div>
+      <div class="stat"><b class="num" id="sDays">0</b><small>Days logged</small></div>
+    </div>
+
+    <div class="card">
+      <h3>Calories, last 14 days</h3>
+      <p class="sub" id="barSub">Dashed line is your daily goal.</p>
+      <div class="bars" id="bars"><div class="goalline" id="goalline"><b>Goal</b></div></div>
+      <div class="xaxis" id="xaxis"></div>
+    </div>
+
+    <div class="card">
+      <h3>Weight</h3>
+      <p class="sub" id="wSub">No weight recorded yet.</p>
+      <svg class="wchart" id="wchart" viewBox="0 0 300 130" preserveAspectRatio="none" aria-hidden="true"></svg>
+    </div>
+
+    <div class="card">
+      <h3>Most logged</h3>
+      <p class="sub">Your repeat items, all time.</p>
+      <ul class="tally" id="topFoods"></ul>
+    </div>
+  </section>
+
+  <!-- ================= WEIGHT ================= -->
+  <section class="view" id="view-weight" hidden>
+    <div class="composer" style="margin-top:18px">
+      <div class="row2">
+        <div class="field kcalfield">
+          <label for="wVal">Weight (<span class="unitlabel">kg</span>)</label>
+          <input type="number" id="wVal" placeholder="0.0" inputmode="decimal" step="0.1" min="0">
+        </div>
+        <div class="field">
+          <label for="wDate">Date</label>
+          <input type="date" id="wDate">
+        </div>
+      </div>
+      <div class="btnrow">
+        <button class="btn primary" id="addWeight">Record weight</button>
+      </div>
+      <p class="hint" id="wHint">Leave the date alone and it saves against today.</p>
+    </div>
+
+    <p class="eyebrow">History</p>
+    <ul class="wlist" id="weightList"></ul>
+  </section>
+</div>
+
+<nav class="tabs">
+  <button data-view="log" aria-current="page">Log</button>
+  <button data-view="trends">Dashboard</button>
+  <button data-view="weight">Weight</button>
+</nav>
+
+<dialog id="settings">
+  <div class="sheet">
+    <h2>Settings</h2>
+    <div class="field">
+      <label for="sGoal">Daily calorie goal</label>
+      <input type="number" id="sGoal" inputmode="numeric" min="0" step="10">
+    </div>
+    <div class="field">
+      <label for="sUnit">Weight unit</label>
+      <select id="sUnit"><option value="kg">Kilograms</option><option value="lb">Pounds</option></select>
+    </div>
+    <div class="btnrow">
+      <button class="btn ghost" id="exportBtn">Export data</button>
+      <button class="btn ghost" id="importBtn">Import data</button>
+    </div>
+    <input type="file" id="importFile" accept="application/json,.json" hidden>
+    <div class="btnrow">
+      <button class="btn ghost danger" id="wipeBtn">Erase everything</button>
+      <button class="btn primary" id="closeSettings">Done</button>
+    </div>
+    <p class="hint" id="setHint">Everything stays on this device.</p>
+  </div>
+</dialog>
+
+<script>
+/* ---------------- storage ---------------- */
+const KEY = "corfit:v1";
+const OLD_KEY = "tally:v1";
+const mem = {};
+const Store = {
+  async get(k){
+    if (window.storage) { try { const r = await window.storage.get(k); return r ? r.value : null; } catch(e){ return null; } }
+    try { return window.localStorage.getItem(k); } catch(e){ return mem[k] ?? null; }
+  },
+  async set(k,v){
+    if (window.storage) { try { await window.storage.set(k,v); return true; } catch(e){ return false; } }
+    try { window.localStorage.setItem(k,v); return true; } catch(e){ mem[k]=v; return true; }
+  }
+};
+
+let DB = { foods: [], weights: [], prefs: { goal: 2000, unit: "kg" } };
+let viewDate = todayISO();
+let openRow = null;
+
+function todayISO(d){ const t = d ? new Date(d) : new Date(); return new Date(t.getTime() - t.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function shiftDate(iso,n){ const d=new Date(iso+"T12:00:00"); d.setDate(d.getDate()+n); return todayISO(d); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function fmt(n){ return Math.round(n).toLocaleString(); }
+function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("on"),1600); }
+
+async function save(){ const ok = await Store.set(KEY, JSON.stringify(DB)); if(!ok) toast("Couldn't save — try again"); }
+async function load(){
+  let raw = await Store.get(KEY);
+  if (!raw) raw = await Store.get(OLD_KEY);   // carry over earlier entries
+  if (raw) { try { const p = JSON.parse(raw); DB = { foods:p.foods||[], weights:p.weights||[], prefs:Object.assign({goal:2000,unit:"kg"},p.prefs||{}) }; } catch(e){} }
+}
+
+/* ---------------- calorie lookup ---------------- */
+async function lookupCalories(name, portion){
+  const q = (portion ? portion + " of " : "") + name;
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      model:"claude-sonnet-4-6",
+      max_tokens:1000,
+      system:"You estimate food energy content. Reply with ONLY a JSON object, no prose and no markdown fences: {\"kcal\": <integer>, \"basis\": \"<max 8 words naming the portion you assumed>\"}. If no portion is given, assume one typical serving.",
+      messages:[{role:"user",content:"Calories in: "+q}]
+    })
+  });
+  if(!res.ok) throw new Error("http "+res.status);
+  const data = await res.json();
+  const text = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("").replace(/```json|```/g,"").trim();
+  const m = text.match(/\{[\s\S]*\}/);
+  const out = JSON.parse(m ? m[0] : text);
+  if (typeof out.kcal !== "number" || !isFinite(out.kcal)) throw new Error("bad payload");
+  return out;
+}
+
+/* ---------------- rendering ---------------- */
+function renderDay(){
+  const isToday = viewDate === todayISO();
+  document.getElementById("dayLabel").textContent = isToday ? "Today" :
+    new Date(viewDate+"T12:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+  document.getElementById("nextDay").disabled = isToday;
+
+  const rows = DB.foods.filter(f=>f.date===viewDate).sort((a,b)=>a.ts-b.ts);
+  const list = document.getElementById("foodList");
+  list.innerHTML = "";
+  if(!rows.length){
+    const li=document.createElement("li");
+    li.innerHTML='<p class="empty">Nothing logged for this day yet. Add your first item above.</p>';
+    list.appendChild(li);
+  }
+  rows.forEach(f=>{
+    const li=document.createElement("li");
+    const btn=document.createElement("button");
+    btn.className="line";
+    btn.innerHTML='<span class="name"></span><span class="portion"></span><span class="leader"></span><span class="kcal">'+fmt(f.kcal)+'</span>';
+    btn.querySelector(".name").textContent=f.name;
+    btn.querySelector(".portion").textContent=f.portion?"· "+f.portion:"";
+    btn.onclick=()=>{ openRow = openRow===f.id ? null : f.id; renderDay(); };
+    li.appendChild(btn);
+    if(openRow===f.id){
+      const tray=document.createElement("div");
+      tray.className="tray";
+      const time=new Date(f.ts).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});
+      tray.innerHTML='<span class="meta">Logged '+time+(f.basis?" · "+f.basis:"")+'</span>';
+      const del=document.createElement("button");
+      del.textContent="Delete";
+      del.onclick=async()=>{ DB.foods=DB.foods.filter(x=>x.id!==f.id); openRow=null; await save(); renderAll(); toast("Deleted"); };
+      tray.appendChild(del);
+      li.appendChild(tray);
+    }
+    list.appendChild(li);
+  });
+
+  const total = rows.reduce((s,f)=>s+f.kcal,0);
+  const goal = DB.prefs.goal||0;
+  document.getElementById("dayTotal").textContent = fmt(total);
+  const pct = goal ? Math.min(100,(total/goal)*100) : 0;
+  const meter = document.getElementById("meter");
+  meter.classList.toggle("over", goal>0 && total>goal);
+  meter.firstElementChild.style.width = (goal ? (total>goal?100:pct) : 0)+"%";
+  document.getElementById("goalTarget").textContent = goal ? "Goal "+fmt(goal) : "No goal set";
+  document.getElementById("goalLeft").textContent = !goal ? "" : total>goal ? fmt(total-goal)+" over" : fmt(goal-total)+" left";
+
+  // recents
+  const seen=new Map();
+  [...DB.foods].sort((a,b)=>b.ts-a.ts).forEach(f=>{ const k=f.name.toLowerCase(); if(!seen.has(k)&&seen.size<8) seen.set(k,f); });
+  const chips=document.getElementById("recents");
+  chips.innerHTML="";
+  [...seen.values()].forEach(f=>{
+    const c=document.createElement("button");
+    c.className="chip";
+    c.innerHTML='<span class="chipname"></span><span>'+fmt(f.kcal)+'</span>';
+    c.querySelector(".chipname").textContent=f.name;
+    c.onclick=()=>{ document.getElementById("fName").value=f.name; document.getElementById("fPortion").value=f.portion||""; document.getElementById("fKcal").value=f.kcal; };
+    chips.appendChild(c);
+  });
+}
+
+function dayTotals(n){
+  const out=[];
+  for(let i=n-1;i>=0;i--){
+    const d=shiftDate(todayISO(),-i);
+    out.push({date:d,total:DB.foods.filter(f=>f.date===d).reduce((s,f)=>s+f.kcal,0)});
+  }
+  return out;
+}
+
+function renderTrends(){
+  const goal=DB.prefs.goal||0;
+  const t14=dayTotals(14), t30=dayTotals(30);
+  const logged7=dayTotals(7).filter(d=>d.total>0), logged30=t30.filter(d=>d.total>0);
+  document.getElementById("sToday").textContent=fmt(DB.foods.filter(f=>f.date===todayISO()).reduce((s,f)=>s+f.kcal,0));
+  document.getElementById("sAvg7").textContent=logged7.length?fmt(logged7.reduce((s,d)=>s+d.total,0)/logged7.length):"—";
+  document.getElementById("sAvg30").textContent=logged30.length?fmt(logged30.reduce((s,d)=>s+d.total,0)/logged30.length):"—";
+  document.getElementById("sDays").textContent=new Set(DB.foods.map(f=>f.date)).size;
+
+  const max=Math.max(goal*1.15, ...t14.map(d=>d.total), 1);
+  const bars=document.getElementById("bars");
+  bars.querySelectorAll(".bar").forEach(b=>b.remove());
+  t14.forEach(d=>{
+    const b=document.createElement("div");
+    b.className="bar"+(d.total===0?" zero":(goal&&d.total>goal?" over":""));
+    b.style.height=Math.max(2,(d.total/max)*100)+"%";
+    b.title=d.date+": "+fmt(d.total)+" kcal";
+    bars.appendChild(b);
+  });
+  const gl=document.getElementById("goalline");
+  gl.style.display=goal?"block":"none";
+  gl.style.bottom=goal?((goal/max)*100)+"%":"0";
+  document.getElementById("xaxis").innerHTML=t14.map((d,i)=>
+    "<span>"+(i%3===0||i===13 ? new Date(d.date+"T12:00:00").getDate() : "")+"</span>").join("");
+
+  // weight chart
+  const ws=[...DB.weights].sort((a,b)=>a.date.localeCompare(b.date));
+  const svg=document.getElementById("wchart");
+  const sub=document.getElementById("wSub");
+  if(ws.length<1){ svg.innerHTML=""; sub.textContent="No weight recorded yet."; }
+  else {
+    const vals=ws.map(w=>toUnit(w.kg));
+    const lo=Math.min(...vals), hi=Math.max(...vals), span=(hi-lo)||1;
+    const x=i=>ws.length===1?150:10+(i/(ws.length-1))*280;
+    const y=v=>115-((v-lo)/span)*95;
+    const pts=vals.map((v,i)=>x(i).toFixed(1)+","+y(v).toFixed(1)).join(" ");
+    svg.innerHTML='<line x1="0" y1="118" x2="300" y2="118"></line><polyline points="'+pts+'"></polyline>'+
+      vals.map((v,i)=>'<circle cx="'+x(i).toFixed(1)+'" cy="'+y(v).toFixed(1)+'" r="2.5"></circle>').join("");
+    const first=vals[0], last=vals[vals.length-1], diff=last-first;
+    sub.textContent="Now "+last.toFixed(1)+" "+DB.prefs.unit+
+      (ws.length>1?" · "+(diff>0?"+":"")+diff.toFixed(1)+" since "+new Date(ws[0].date+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"}):"");
+  }
+
+  // most logged
+  const tallyMap={};
+  DB.foods.forEach(f=>{ const k=f.name.toLowerCase(); (tallyMap[k]=tallyMap[k]||{name:f.name,n:0,kcal:0}); tallyMap[k].n++; tallyMap[k].kcal+=f.kcal; });
+  const top=Object.values(tallyMap).sort((a,b)=>b.n-a.n).slice(0,5);
+  const tf=document.getElementById("topFoods");
+  tf.innerHTML = top.length ? "" : '<li><p class="empty" style="border:0">Log a few meals and your regulars show up here.</p></li>';
+  top.forEach(t=>{
+    const li=document.createElement("li");
+    li.innerHTML='<div class="line" style="cursor:default"><span class="name"></span><span class="portion">· '+t.n+'×</span><span class="leader"></span><span class="kcal">'+fmt(t.kcal/t.n)+'</span></div>';
+    li.querySelector(".name").textContent=t.name;
+    tf.appendChild(li);
+  });
+}
+
+function toUnit(kg){ return DB.prefs.unit==="lb" ? kg*2.2046226 : kg; }
+function toKg(v){ return DB.prefs.unit==="lb" ? v/2.2046226 : v; }
+
+function renderWeight(){
+  document.querySelectorAll(".unitlabel").forEach(e=>e.textContent=DB.prefs.unit);
+  const list=document.getElementById("weightList");
+  const ws=[...DB.weights].sort((a,b)=>b.date.localeCompare(a.date));
+  list.innerHTML = ws.length ? "" : '<li><span class="wdate" style="color:var(--spruce)">No entries yet. Record your first weight above.</span></li>';
+  ws.forEach((w,i)=>{
+    const prev=ws[i+1];
+    const d=prev?toUnit(w.kg)-toUnit(prev.kg):null;
+    const li=document.createElement("li");
+    li.innerHTML='<span class="wdate">'+new Date(w.date+"T12:00:00").toLocaleDateString(undefined,{weekday:"short",year:"numeric",month:"short",day:"numeric"})+'</span>'+
+      '<span class="delta">'+(d===null?"":(d>0?"+":"")+d.toFixed(1))+'</span>'+
+      '<span class="wval">'+toUnit(w.kg).toFixed(1)+'</span>';
+    const x=document.createElement("button");
+    x.className="x"; x.setAttribute("aria-label","Delete entry"); x.textContent="×";
+    x.onclick=async()=>{ DB.weights=DB.weights.filter(e=>e.id!==w.id); await save(); renderAll(); toast("Deleted"); };
+    li.appendChild(x);
+    list.appendChild(li);
+  });
+}
+
+function renderAll(){ renderDay(); renderTrends(); renderWeight(); }
+
+/* ---------------- events ---------------- */
+document.getElementById("prevDay").onclick=()=>{ viewDate=shiftDate(viewDate,-1); openRow=null; renderDay(); };
+document.getElementById("nextDay").onclick=()=>{ if(viewDate<todayISO()){ viewDate=shiftDate(viewDate,1); openRow=null; renderDay(); } };
+
+document.getElementById("lookupBtn").onclick=async()=>{
+  const name=document.getElementById("fName").value.trim();
+  const portion=document.getElementById("fPortion").value.trim();
+  const hint=document.getElementById("foodHint");
+  const btn=document.getElementById("lookupBtn");
+  hint.classList.remove("err");
+  if(!name){ hint.textContent="Type what you ate first, then look it up."; hint.classList.add("err"); return; }
+  btn.disabled=true; btn.textContent="Looking up…"; hint.textContent="Checking "+name+"…";
+  try{
+    const r=await lookupCalories(name,portion);
+    document.getElementById("fKcal").value=Math.round(r.kcal);
+    document.getElementById("fKcal").dataset.basis=r.basis||"";
+    hint.textContent="Estimate for "+(r.basis||"one serving")+". Adjust it if that's not your portion.";
+  }catch(e){
+    hint.textContent="Couldn't reach the lookup. Enter the calories yourself and add it.";
+    hint.classList.add("err");
+  }
+  btn.disabled=false; btn.textContent="Look up calories";
+};
+
+document.getElementById("addFood").onclick=async()=>{
+  const name=document.getElementById("fName").value.trim();
+  const portion=document.getElementById("fPortion").value.trim();
+  const kcal=parseFloat(document.getElementById("fKcal").value);
+  const hint=document.getElementById("foodHint");
+  hint.classList.remove("err");
+  if(!name){ hint.textContent="Give the item a name."; hint.classList.add("err"); return; }
+  if(!isFinite(kcal)||kcal<0){ hint.textContent="Add a calorie number, or tap Look up calories."; hint.classList.add("err"); return; }
+  DB.foods.push({id:uid(),date:viewDate,name,portion,kcal:Math.round(kcal),basis:document.getElementById("fKcal").dataset.basis||"",ts:Date.now()});
+  document.getElementById("fName").value=""; document.getElementById("fPortion").value=""; document.getElementById("fKcal").value="";
+  document.getElementById("fKcal").dataset.basis="";
+  hint.textContent="Added.";
+  await save(); renderAll();
+};
+
+document.getElementById("addWeight").onclick=async()=>{
+  const raw=parseFloat(document.getElementById("wVal").value);
+  const hint=document.getElementById("wHint");
+  hint.classList.remove("err");
+  if(!isFinite(raw)||raw<=0){ hint.textContent="Enter a weight to record."; hint.classList.add("err"); return; }
+  const date=document.getElementById("wDate").value || todayISO();
+  DB.weights=DB.weights.filter(w=>w.date!==date);
+  DB.weights.push({id:uid(),date,kg:toKg(raw)});
+  document.getElementById("wVal").value="";
+  document.getElementById("wDate").value=todayISO();
+  hint.textContent="Recorded for "+new Date(date+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"})+".";
+  await save(); renderAll();
+};
+
+document.querySelectorAll("nav.tabs button").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll("nav.tabs button").forEach(x=>x.removeAttribute("aria-current"));
+    b.setAttribute("aria-current","page");
+    ["log","trends","weight"].forEach(v=>document.getElementById("view-"+v).hidden = v!==b.dataset.view);
+    window.scrollTo({top:0});
+  };
+});
+
+const dlg=document.getElementById("settings");
+document.getElementById("openSettings").onclick=()=>{
+  document.getElementById("sGoal").value=DB.prefs.goal||"";
+  document.getElementById("sUnit").value=DB.prefs.unit;
+  dlg.showModal();
+};
+document.getElementById("closeSettings").onclick=async()=>{
+  const g=parseInt(document.getElementById("sGoal").value,10);
+  DB.prefs.goal=isFinite(g)&&g>0?g:0;
+  DB.prefs.unit=document.getElementById("sUnit").value;
+  await save(); renderAll(); dlg.close();
+};
+document.getElementById("exportBtn").onclick=()=>{
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download="corfit-"+todayISO()+".json"; a.click();
+  document.getElementById("setHint").textContent="Exported a copy of your data.";
+};
+document.getElementById("importBtn").onclick=()=>document.getElementById("importFile").click();
+document.getElementById("importFile").onchange=async(e)=>{
+  const f=e.target.files[0], h=document.getElementById("setHint");
+  if(!f) return;
+  try{
+    const p=JSON.parse(await f.text());
+    if(!p || (!Array.isArray(p.foods) && !Array.isArray(p.weights))) throw new Error("shape");
+    const ids=new Set(DB.foods.map(x=>x.id));
+    let nf=0,nw=0;
+    (p.foods||[]).forEach(x=>{ if(x&&x.id&&!ids.has(x.id)){ DB.foods.push(x); nf++; } });
+    const dates=new Set(DB.weights.map(x=>x.date));
+    (p.weights||[]).forEach(x=>{ if(x&&x.date&&!dates.has(x.date)){ DB.weights.push(x); nw++; } });
+    if(p.prefs) DB.prefs=Object.assign(DB.prefs,p.prefs);
+    h.classList.remove("err");
+    h.textContent="Added "+nf+" food and "+nw+" weight records.";
+    await save(); renderAll();
+  }catch(err){
+    h.classList.add("err");
+    h.textContent="That isn't a Corfit backup. Choose the .json file you exported.";
+  }
+  e.target.value="";
+};
+
+document.getElementById("wipeBtn").onclick=async()=>{
+  const h=document.getElementById("setHint");
+  if(h.dataset.armed!=="1"){ h.dataset.armed="1"; h.textContent="Tap again to erase every food and weight record."; h.classList.add("err"); return; }
+  DB={foods:[],weights:[],prefs:DB.prefs};
+  h.dataset.armed="0"; h.classList.remove("err"); h.textContent="Everything erased.";
+  await save(); renderAll();
+};
+
+/* ---------------- boot ---------------- */
+(async function(){
+  await load();
+  document.getElementById("wDate").value=todayISO();
+  document.getElementById("wDate").max=todayISO();
+  renderAll();
+})();
+</script>
+</body>
+</html>
