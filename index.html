@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Corfit">
 <meta name="theme-color" content="#EDEFEA">
-<!-- build 7: multiplier + optional fields -->
+<!-- build 8: personal food library -->
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
 <link rel="apple-touch-icon" sizes="167x167" href="icon.png">
@@ -309,7 +309,10 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
     </div>
     <input type="file" id="importFile" accept="application/json,.json" hidden>
     <div class="btnrow">
+      <button class="btn ghost" id="clearCustom">Clear saved foods</button>
       <button class="btn ghost danger" id="wipeBtn">Erase everything</button>
+    </div>
+    <div class="btnrow">
       <button class="btn primary" id="closeSettings">Done</button>
     </div>
     <p class="hint" id="setHint">Everything stays on this device.</p>
@@ -332,7 +335,7 @@ const Store = {
   }
 };
 
-let DB = { foods: [], weights: [], prefs: { goal: 2000, unit: "kg" } };
+let DB = { foods: [], weights: [], custom: [], prefs: { goal: 2000, unit: "kg" } };
 let viewDate = todayISO();
 let openRow = null;
 
@@ -346,7 +349,7 @@ async function save(){ const ok = await Store.set(KEY, JSON.stringify(DB)); if(!
 async function load(){
   let raw = await Store.get(KEY);
   if (!raw) raw = await Store.get(OLD_KEY);   // carry over earlier entries
-  if (raw) { try { const p = JSON.parse(raw); DB = { foods:p.foods||[], weights:p.weights||[], prefs:Object.assign({goal:2000,unit:"kg"},p.prefs||{}) }; } catch(e){} }
+  if (raw) { try { const p = JSON.parse(raw); DB = { foods:p.foods||[], weights:p.weights||[], custom:p.custom||[], prefs:Object.assign({goal:2000,unit:"kg"},p.prefs||{}) }; } catch(e){} }
 }
 
 /* ---------------- calorie lookup ---------------- */
@@ -381,6 +384,24 @@ const FOODS = [
 ["diet cola",0,"330 ml"],["water",0,"any"],["protein shake",120,"1 scoop"]
 ];
 
+const REF_KEYS = new Set(REF.map(f => f[0].toLowerCase()));
+const FOOD_KEYS = new Set(FOODS.map(f => f[0].toLowerCase()));
+
+/* Anything the library doesn't already know gets kept for next time. */
+function rememberFood(name, portion, baseKcal){
+  const key = name.toLowerCase().trim();
+  if(!key || key === "item") return false;
+  if(REF_KEYS.has(key) || FOOD_KEYS.has(key)) return false;
+  const found = DB.custom.find(c => c.name.toLowerCase() === key);
+  if(found){
+    found.kcal = baseKcal; found.portion = portion;
+    found.n = (found.n || 1) + 1; found.ts = Date.now();
+    return false;
+  }
+  DB.custom.push({name, portion, kcal: baseKcal, n: 1, ts: Date.now()});
+  return true;
+}
+
 function parseAmount(){
   const raw = (document.getElementById("fPortion").value || "").trim();
   const m = raw.match(/(\d+(?:\.\d+)?)/);
@@ -405,7 +426,13 @@ function localMatches(q){
   const amt = parseAmount();
   const rows = [];
 
-  // curated per-portion dishes first
+  // your own saved foods rank above everything
+  (DB.custom || []).forEach(c => {
+    const sc = scoreName(c.name, ql, words);
+    if (sc > 0) rows.push({sc: sc + 200, name: c.name, sub: (c.portion ? c.portion + " · saved" : "saved"), kcal: c.kcal});
+  });
+
+  // curated per-portion dishes next
   FOODS.forEach(f => {
     const sc = scoreName(f[0], ql, words);
     if (sc > 0) rows.push({sc: sc + 40, name: f[0].replace(/^./, c=>c.toUpperCase()), sub: f[2], kcal: f[1]});
@@ -696,13 +723,15 @@ document.getElementById("addFood").onclick=async()=>{
   const hint=document.getElementById("foodHint");
   hint.classList.remove("err");
   if(kcal===null){ hint.textContent="Add a calorie number, or tap a match above."; hint.classList.add("err"); return; }
+  const baseKcal = Math.round(parseFloat(document.getElementById("fKcal").value));
+  const isNew = rememberFood(name, document.getElementById("fPortion").value.trim(), baseKcal);
   if(m!==1) portion = portion ? portion+" ×"+m : "×"+m;
   DB.foods.push({id:uid(),date:viewDate,name,portion,kcal,basis:document.getElementById("fKcal").dataset.basis||"",ts:Date.now()});
   ["fName","fPortion","fKcal","fMult"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("fKcal").dataset.basis="";
   document.getElementById("calcLine").textContent="";
   document.getElementById("results").innerHTML="";
-  hint.textContent="Added.";
+  hint.textContent = isNew ? "Added, and saved to your foods." : "Added.";
   await save(); renderAll();
 };
 
@@ -759,6 +788,8 @@ document.getElementById("importFile").onchange=async(e)=>{
     (p.foods||[]).forEach(x=>{ if(x&&x.id&&!ids.has(x.id)){ DB.foods.push(x); nf++; } });
     const dates=new Set(DB.weights.map(x=>x.date));
     (p.weights||[]).forEach(x=>{ if(x&&x.date&&!dates.has(x.date)){ DB.weights.push(x); nw++; } });
+    const ck=new Set((DB.custom||[]).map(c=>c.name.toLowerCase()));
+    (p.custom||[]).forEach(c=>{ if(c&&c.name&&!ck.has(c.name.toLowerCase())) DB.custom.push(c); });
     if(p.prefs) DB.prefs=Object.assign(DB.prefs,p.prefs);
     h.classList.remove("err");
     h.textContent="Added "+nf+" food and "+nw+" weight records.";
@@ -770,10 +801,20 @@ document.getElementById("importFile").onchange=async(e)=>{
   e.target.value="";
 };
 
+document.getElementById("clearCustom").onclick=async()=>{
+  const h=document.getElementById("setHint");
+  const n=(DB.custom||[]).length;
+  if(!n){ h.classList.remove("err"); h.textContent="No saved foods yet."; return; }
+  if(h.dataset.armedC!=="1"){ h.dataset.armedC="1"; h.classList.add("err");
+    h.textContent="Tap again to forget "+n+" saved food"+(n>1?"s":"")+". Your logged entries stay."; return; }
+  DB.custom=[]; h.dataset.armedC="0"; h.classList.remove("err"); h.textContent="Saved foods cleared.";
+  await save();
+};
+
 document.getElementById("wipeBtn").onclick=async()=>{
   const h=document.getElementById("setHint");
   if(h.dataset.armed!=="1"){ h.dataset.armed="1"; h.textContent="Tap again to erase every food and weight record."; h.classList.add("err"); return; }
-  DB={foods:[],weights:[],prefs:DB.prefs};
+  DB={foods:[],weights:[],custom:[],prefs:DB.prefs};
   h.dataset.armed="0"; h.classList.remove("err"); h.textContent="Everything erased.";
   await save(); renderAll();
 };
