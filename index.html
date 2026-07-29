@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Corfit">
 <meta name="theme-color" content="#EDEFEA">
-<!-- build 6: 4,463-food reference table + Open Food Facts -->
+<!-- build 7: multiplier + optional fields -->
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
 <link rel="apple-touch-icon" sizes="167x167" href="icon.png">
@@ -69,6 +69,9 @@ input[type=text],input[type=number],input[type=date],select{
 input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--cobalt);outline-offset:2px}
 .row2{display:flex;gap:10px}
 .row2 .field{flex:1;margin-bottom:10px}
+.multfield{flex:0 0 74px!important}
+.calc{margin:-2px 0 9px;font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--spruce);min-height:1.2em}
+.calc b{color:var(--ink);font-weight:500}
 .kcalfield input{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
 .btnrow{display:flex;gap:8px;margin-top:2px}
 .btn{flex:1;font:inherit;font-weight:600;border-radius:9px;padding:12px;border:1px solid var(--ink);cursor:pointer}
@@ -200,7 +203,12 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
           <label for="fKcal">Calories</label>
           <input type="number" id="fKcal" placeholder="0" inputmode="numeric" min="0" step="1">
         </div>
+        <div class="field kcalfield multfield">
+          <label for="fMult">Times</label>
+          <input type="number" id="fMult" placeholder="1" inputmode="decimal" min="0" step="0.5">
+        </div>
       </div>
+      <p class="calc" id="calcLine"></p>
       <div class="btnrow">
         <button class="btn ghost" id="lookupBtn">Search online</button>
         <button class="btn primary" id="addFood">Add to log</button>
@@ -454,7 +462,8 @@ function showResults(list){
       document.getElementById("fKcal").value = r.kcal;
       document.getElementById("fKcal").dataset.basis = r.sub;
       box.innerHTML = "";
-      document.getElementById("foodHint").textContent = "Adjust the number if your portion was different.";
+      renderCalc();
+      document.getElementById("foodHint").textContent = "Adjust the number, or set Times for multiple servings.";
       document.getElementById("foodHint").classList.remove("err");
     };
     li.appendChild(b);
@@ -660,17 +669,39 @@ document.getElementById("lookupBtn").onclick=async()=>{
   btn.disabled=false; btn.textContent="Search online";
 };
 
+function multiplier(){
+  const v = parseFloat(document.getElementById("fMult").value);
+  return (isFinite(v) && v > 0) ? v : 1;
+}
+function effectiveKcal(){
+  const base = parseFloat(document.getElementById("fKcal").value);
+  if(!isFinite(base) || base < 0) return null;
+  return Math.round(base * multiplier());
+}
+function renderCalc(){
+  const base = parseFloat(document.getElementById("fKcal").value);
+  const m = multiplier();
+  const line = document.getElementById("calcLine");
+  if(!isFinite(base) || m === 1){ line.textContent = ""; return; }
+  line.innerHTML = base + " × " + m + " = <b>" + Math.round(base * m) + " kcal</b>";
+}
+document.getElementById("fMult").oninput = renderCalc;
+document.getElementById("fKcal").oninput = renderCalc;
+
 document.getElementById("addFood").onclick=async()=>{
-  const name=document.getElementById("fName").value.trim();
-  const portion=document.getElementById("fPortion").value.trim();
-  const kcal=parseFloat(document.getElementById("fKcal").value);
+  const name=document.getElementById("fName").value.trim() || "Item";
+  let portion=document.getElementById("fPortion").value.trim();
+  const m=multiplier();
+  const kcal=effectiveKcal();
   const hint=document.getElementById("foodHint");
   hint.classList.remove("err");
-  if(!name){ hint.textContent="Give the item a name."; hint.classList.add("err"); return; }
-  if(!isFinite(kcal)||kcal<0){ hint.textContent="Add a calorie number, or tap Look up calories."; hint.classList.add("err"); return; }
-  DB.foods.push({id:uid(),date:viewDate,name,portion,kcal:Math.round(kcal),basis:document.getElementById("fKcal").dataset.basis||"",ts:Date.now()});
-  document.getElementById("fName").value=""; document.getElementById("fPortion").value=""; document.getElementById("fKcal").value="";
+  if(kcal===null){ hint.textContent="Add a calorie number, or tap a match above."; hint.classList.add("err"); return; }
+  if(m!==1) portion = portion ? portion+" ×"+m : "×"+m;
+  DB.foods.push({id:uid(),date:viewDate,name,portion,kcal,basis:document.getElementById("fKcal").dataset.basis||"",ts:Date.now()});
+  ["fName","fPortion","fKcal","fMult"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("fKcal").dataset.basis="";
+  document.getElementById("calcLine").textContent="";
+  document.getElementById("results").innerHTML="";
   hint.textContent="Added.";
   await save(); renderAll();
 };
