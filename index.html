@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Corfit">
 <meta name="theme-color" content="#EDEFEA">
-<!-- build 16: no backing band -->
+<!-- build 17: restored burned total -->
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
 <link rel="apple-touch-icon" sizes="167x167" href="icon.png">
@@ -288,6 +288,14 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
     <p class="eyebrow">Today's movement</p>
     <ul class="tally" id="actList"></ul>
 
+    <div class="total">
+      <div class="line">
+        <span class="name">Burned</span>
+        <span class="leader"></span>
+        <span class="kcal num" id="dayBurn">0</span>
+      </div>
+      <div class="goalnote"><span id="burnNote"></span><span id="burnBasis"></span></div>
+    </div>
   </section>
 
   <!-- ================= TRENDS ================= -->
@@ -1108,7 +1116,11 @@ function renderWeight(){
   });
 }
 
-function renderAll(){ renderDay(); renderMove(); renderTrends(); renderWeight(); buildPlan(); }
+function renderAll(){
+  [renderDay, renderMove, renderTrends, renderWeight, buildPlan].forEach(fn => {
+    try { fn(); } catch(e){ console.error(fn.name, e); }
+  });
+}
 
 /* ---------------- events ---------------- */
 document.getElementById("prevDay").onclick=()=>{ viewDate=shiftDate(viewDate,-1); openRow=null; renderDay(); renderMove(); };
