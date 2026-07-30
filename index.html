@@ -157,7 +157,11 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .bars .bar{flex:1;background:var(--spruce);border-radius:3px 3px 0 0;min-height:2px;opacity:.85}
 .bars .bar.over{background:var(--signal)}
 .bars .bar.zero{background:var(--rule)}
-.bars .bar.burn{background:var(--cobalt);opacity:.8}
+.bars .bar.burn{background:var(--cobalt);opacity:.85}
+.bars .grp{flex:1;display:flex;align-items:flex-end;gap:2px;height:100%}
+.grp .bar{flex:1;min-height:2px}
+.legend{display:flex;gap:16px;margin:-6px 0 13px;font-size:12px;color:var(--spruce)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:middle}
 .goalline{position:absolute;left:0;right:0;border-top:1px dashed var(--cobalt);pointer-events:none}
 .goalline b{position:absolute;right:0;top:-16px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--cobalt);background:var(--paper);padding:0 3px;font-weight:600}
 .xaxis{display:flex;gap:4px;margin-top:6px}
@@ -372,17 +376,14 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
     </div>
 
     <div class="card">
-      <h3>Calories, last 14 days</h3>
+      <h3>In and out, last 14 days</h3>
       <p class="sub" id="barSub">Dashed line is your daily goal.</p>
+      <div class="legend">
+        <span><i style="background:var(--spruce)"></i>Eaten</span>
+        <span><i style="background:var(--cobalt)"></i>Burned</span>
+      </div>
       <div class="bars" id="bars"><div class="goalline" id="goalline"><b>Goal</b></div></div>
       <div class="xaxis" id="xaxis"></div>
-    </div>
-
-    <div class="card">
-      <h3>Burned, last 14 days</h3>
-      <p class="sub" id="burnSub">From the activities you log.</p>
-      <div class="bars" id="burnBars"></div>
-      <div class="xaxis" id="burnAxis"></div>
     </div>
 
     <div class="card">
@@ -1197,38 +1198,37 @@ function renderTrends(){
   document.getElementById("sBurn").textContent=fmt(bToday);
   document.getElementById("sNet").textContent=fmt(eToday-bToday);
 
-  const bt=t14.map(d=>({date:d.date,total:burnOn(d.date)}));
-  const bmax=Math.max(...bt.map(d=>d.total),1);
-  const bbox=document.getElementById("burnBars");
-  bbox.innerHTML="";
-  bt.forEach(d=>{
-    const b=document.createElement("div");
-    b.className="bar burn"+(d.total===0?" zero":"");
-    b.style.height=Math.max(2,(d.total/bmax)*100)+"%";
-    b.title=d.date+": "+fmt(d.total)+" kcal";
-    bbox.appendChild(b);
-  });
-  const bsum=bt.reduce((s,d)=>s+d.total,0);
-  document.getElementById("burnSub").textContent = bsum
-    ? fmt(bsum)+" kcal over 14 days · "+fmt(bsum/14)+" a day"
-    : "No activity logged yet.";
-  document.getElementById("burnAxis").innerHTML=document.getElementById("xaxis").innerHTML;
 
-  const max=Math.max(goal*1.15, ...t14.map(d=>d.total), 1);
-  const bars=document.getElementById("bars");
-  bars.querySelectorAll(".bar").forEach(b=>b.remove());
-  t14.forEach(d=>{
-    const b=document.createElement("div");
-    b.className="bar"+(d.total===0?" zero":(goal&&d.total>goal?" over":""));
-    b.style.height=Math.max(2,(d.total/max)*100)+"%";
-    b.title=d.date+": "+fmt(d.total)+" kcal";
-    bars.appendChild(b);
+
+  const burn14 = t14.map(d => burnOn(d.date));
+  const max = Math.max(goal*1.15, ...t14.map(d=>d.total), ...burn14, 1);
+  const bars = document.getElementById("bars");
+  bars.querySelectorAll(".grp").forEach(g => g.remove());
+  t14.forEach((d,i) => {
+    const g = document.createElement("div");
+    g.className = "grp";
+    const eaten = document.createElement("div");
+    eaten.className = "bar" + (d.total===0 ? " zero" : (goal && d.total>goal ? " over" : ""));
+    eaten.style.height = Math.max(2,(d.total/max)*100)+"%";
+    eaten.title = d.date+": "+fmt(d.total)+" eaten";
+    const burnt = document.createElement("div");
+    burnt.className = "bar burn" + (burn14[i]===0 ? " zero" : "");
+    burnt.style.height = Math.max(2,(burn14[i]/max)*100)+"%";
+    burnt.title = d.date+": "+fmt(burn14[i])+" burned";
+    g.appendChild(eaten); g.appendChild(burnt);
+    bars.appendChild(g);
   });
+
   const gl=document.getElementById("goalline");
   gl.style.display=goal?"block":"none";
   gl.style.bottom=goal?((goal/max)*100)+"%":"0";
   document.getElementById("xaxis").innerHTML=t14.map((d,i)=>
     "<span>"+(i%3===0||i===13 ? new Date(d.date+"T12:00:00").getDate() : "")+"</span>").join("");
+
+  const eatenSum=t14.reduce((s,d)=>s+d.total,0), burnSum=burn14.reduce((s,v)=>s+v,0);
+  document.getElementById("barSub").textContent = eatenSum || burnSum
+    ? fmt(eatenSum/14)+" eaten and "+fmt(burnSum/14)+" burned a day on average"
+    : "Dashed line is your daily goal.";
 
   // weight chart
   const ws=[...DB.weights].sort((a,b)=>a.date.localeCompare(b.date));
