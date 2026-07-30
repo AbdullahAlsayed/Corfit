@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Corfit">
 <meta name="theme-color" content="#EDEFEA">
-<!-- build 18: net total drives the meter -->
+<!-- build 19: meals library -->
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
 <link rel="apple-touch-icon" sizes="167x167" href="icon.png">
@@ -65,9 +65,10 @@ header{padding:calc(14px + env(safe-area-inset-top)) 0 8px}
 .composer{background:var(--paper);border:1px solid var(--rule);border-radius:14px;padding:14px;margin:14px 0 18px;box-shadow:var(--shadow)}
 .field{display:block;margin-bottom:10px}
 .field label{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--spruce);margin-bottom:5px;font-weight:600}
-input[type=text],input[type=number],input[type=date],select{
+input[type=text],input[type=number],input[type=date],select,textarea{
   width:100%;font:inherit;color:var(--ink);background:#fff;
   border:1px solid var(--rule);border-radius:9px;padding:11px 12px;appearance:none}
+textarea{resize:vertical;line-height:1.5;font-size:15px}
 input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--cobalt);outline-offset:2px}
 .row2{display:flex;gap:10px}
 .row2 .field{flex:1;margin-bottom:10px}
@@ -105,6 +106,11 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 .line .kcal{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
 .tray{display:flex;gap:8px;align-items:center;padding:0 0 12px}
 .tray .meta{flex:1;font-size:12.5px;color:var(--spruce)}
+.mealbody{padding:0 0 14px;font-size:14px;color:var(--ink)}
+.mealbody .desc{color:var(--spruce);margin:0 0 8px}
+.mealbody .rec{white-space:pre-wrap;border-left:2px solid var(--rule);padding-left:11px;margin:0 0 12px;color:var(--spruce);font-size:13.5px;line-height:1.55}
+.mealbody .btnrow{margin:0}
+.mealbody .btnrow button{padding:9px}
 .tray button{font:inherit;font-size:13px;font-weight:600;border-radius:8px;padding:7px 13px;cursor:pointer;background:#fff;border:1px solid var(--signal);color:var(--signal)}
 .empty{padding:26px 0;color:var(--spruce);font-size:14.5px;border-bottom:1px solid var(--rule)}
 
@@ -167,7 +173,7 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 nav.tabs{position:fixed;left:0;right:0;bottom:0;background:rgba(237,239,234,.94);
   backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
   border-top:1px solid var(--rule);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:20}
-nav.tabs button{flex:1;background:none;border:0;font:inherit;font-size:10px;letter-spacing:.04em;text-transform:uppercase;
+nav.tabs button{flex:1;background:none;border:0;font:inherit;font-size:9.5px;letter-spacing:.02em;text-transform:uppercase;
   font-weight:600;color:var(--spruce);padding:15px 2px;cursor:pointer;position:relative}
 nav.tabs button[aria-current=page]{color:var(--ink)}
 nav.tabs button[aria-current=page]::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:9px;width:16px;height:2px;background:var(--ink)}
@@ -296,6 +302,44 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
       </div>
       <div class="goalnote"><span id="burnNote"></span><span id="burnBasis"></span></div>
     </div>
+  </section>
+
+
+  <!-- ================= MEALS ================= -->
+  <section class="view" id="view-meals" hidden>
+    <p class="eyebrow" style="margin-top:16px">Your meals</p>
+
+    <div class="composer">
+      <div class="field">
+        <label for="mName">Meal name</label>
+        <input type="text" id="mName" placeholder="Grilled chicken and rice" autocomplete="off">
+      </div>
+      <div class="row2">
+        <div class="field kcalfield">
+          <label for="mKcal">Calories</label>
+          <input type="number" id="mKcal" placeholder="0" inputmode="numeric" min="0">
+        </div>
+        <div class="field kcalfield">
+          <label for="mProtein">Protein (g)</label>
+          <input type="number" id="mProtein" placeholder="—" inputmode="numeric" min="0">
+        </div>
+      </div>
+      <div class="field">
+        <label for="mDesc">What's in it</label>
+        <input type="text" id="mDesc" placeholder="200 g chicken + 150 g rice + salad">
+      </div>
+      <div class="field">
+        <label for="mRecipe">Recipe (optional)</label>
+        <textarea id="mRecipe" rows="3" placeholder="Steps, timings, anything you want to remember"></textarea>
+      </div>
+      <div class="btnrow">
+        <button class="btn primary" id="saveMeal">Save meal</button>
+      </div>
+      <p class="hint" id="mealHint">Saved meals show up when you search on the Log tab.</p>
+    </div>
+
+    <p class="eyebrow">Saved</p>
+    <ul class="tally" id="mealList"></ul>
   </section>
 
   <!-- ================= TRENDS ================= -->
@@ -440,6 +484,7 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
 <nav class="tabs">
   <button data-view="log" aria-current="page">Log</button>
   <button data-view="move">Move</button>
+  <button data-view="meals">Meals</button>
   <button data-view="trends">Stats</button>
   <button data-view="weight">Weight</button>
   <button data-view="goal">Goal</button>
@@ -488,9 +533,10 @@ const Store = {
   }
 };
 
-let DB = { foods: [], weights: [], acts: [], custom: [], customActs: [], prefs: { goal: 2000, unit: "kg" } };
+let DB = { foods: [], weights: [], acts: [], meals: [], custom: [], customActs: [], prefs: { goal: 2000, unit: "kg" } };
 let viewDate = todayISO();
 let openRow = null;
+let openMeal = null;
 
 function todayISO(d){ const t = d ? new Date(d) : new Date(); return new Date(t.getTime() - t.getTimezoneOffset()*60000).toISOString().slice(0,10); }
 function shiftDate(iso,n){ const d=new Date(iso+"T12:00:00"); d.setDate(d.getDate()+n); return todayISO(d); }
@@ -502,7 +548,7 @@ async function save(){ const ok = await Store.set(KEY, JSON.stringify(DB)); if(!
 async function load(){
   let raw = await Store.get(KEY);
   if (!raw) raw = await Store.get(OLD_KEY);   // carry over earlier entries
-  if (raw) { try { const p = JSON.parse(raw); DB = { foods:p.foods||[], weights:p.weights||[], acts:p.acts||[], custom:p.custom||[], customActs:p.customActs||[], prefs:Object.assign({goal:2000,unit:"kg"},p.prefs||{}) }; } catch(e){} }
+  if (raw) { try { const p = JSON.parse(raw); DB = { foods:p.foods||[], weights:p.weights||[], acts:p.acts||[], meals:p.meals||[], custom:p.custom||[], customActs:p.customActs||[], prefs:Object.assign({goal:2000,unit:"kg"},p.prefs||{}) }; } catch(e){} }
 }
 
 /* ---------------- calorie lookup ---------------- */
@@ -579,7 +625,12 @@ function localMatches(q){
   const amt = parseAmount();
   const rows = [];
 
-  // your own saved foods rank above everything
+  // meals first, then your own saved foods
+  (DB.meals || []).forEach(m => {
+    const sc = scoreName(m.name, ql, words);
+    if (sc > 0) rows.push({sc: sc + 300, name: m.name, sub: (m.desc ? m.desc.slice(0,42) : "meal"), kcal: m.kcal});
+  });
+
   (DB.custom || []).forEach(c => {
     const sc = scoreName(c.name, ql, words);
     if (sc > 0) rows.push({sc: sc + 200, name: c.name, sub: (c.portion ? c.portion + " · saved" : "saved"), kcal: c.kcal});
@@ -932,6 +983,70 @@ async function savePlanFields(){
   await save();
 }
 
+
+/* ---------------- meals ---------------- */
+/* [name, kcal, protein g, description, recipe] */
+const SEED_MEALS = [["Day 1 lunch — chicken and rice", 590, 50, "Chicken breast 200 g grilled + 150 g cooked rice + salad, 1 tsp olive oil and lemon", "Slice the breast horizontally into two thin pieces so it cooks evenly.\nSeason both sides: salt, pepper, paprika, garlic powder, lemon.\nHot pan, 2 min. 1 tsp oil spread with a paper towel.\nLay it down, don't touch it for 4 min. Flip once, 3–4 min more.\nFirm to the touch, not squishy. Rest 3 min before cutting.\nBetter marinated: 2 tbsp yoghurt + lemon + garlic + salt, 30 min.\n\nRICE\nRinse 50 g dry rice until the water runs clear.\nAdd 100 ml water and a pinch of salt.\nBoil uncovered, drop to minimum heat, cover, 12 min.\nHeat off, lid on, rest 5 min. Fluff with a fork.\nMakes 150 g cooked. Do three days' worth at once."], ["Day 1 dinner — fish and roasted veg", 490, 45, "Fish fillet 250 g + roasted courgette, pepper and onion + 1 slice bread", "Pat completely dry — wet fish steams instead of browning.\nSeason: salt, pepper, cumin or paprika, lemon.\nMedium-high pan, 1 tsp oil, presentation side down first.\n3–4 min without moving it, flip gently, 2–3 min more.\nDone when it flakes with a fork.\nOven version: 200°C on baking paper, 12–15 min, no flipping.\n\nROASTED VEG\nChop courgette, pepper, onion, cauliflower, broccoli to a similar size.\nToss with 1 tsp oil, salt, pepper, paprika.\nSingle layer on the tray — piled up they steam and go soggy.\n200°C for 25 min, shake once halfway."], ["Day 2 lunch — pasta with chicken", 620, 50, "Pasta 70 g dry + chicken breast 180 g + tomato and vegetable sauce + side salad", "Salt the water well, 70 g pasta, 9–11 min.\nMeanwhile: 1 tsp oil, onion 3 min, garlic 30 sec.\nAdd chopped or crushed tomato, pepper, courgette. Simmer 8 min.\nAdd cooked chicken strips, salt, pepper, oregano.\nSave 3 tbsp pasta water and stir it in so the sauce clings."], ["Day 2 dinner — omelette and beans", 510, 40, "3-egg omelette with onion, tomato and pepper + ½ cup beans + 1 slice bread", "Fry onion in 1 tsp oil 3 min, add pepper and tomato 3 min.\nBeat 3 eggs with salt, pepper and 1 tbsp water.\nPour over the vegetables on LOW heat — low is the whole secret.\nPush the edges in, let the liquid run under. 4–5 min.\nFold in half when the top is barely set.\n\nBEANS\nCanned: drain and rinse. Onion and garlic in 1 tsp oil,\nadd beans with a little water and cumin, simmer 5 min,\nmash a third with a fork.\nDry: soak overnight, boil 45–60 min."], ["Day 3 lunch — beans, rice and eggs", 570, 45, "1 cup cooked beans + 100 g cooked rice + 2 boiled eggs + large salad", "Canned: drain and rinse. Onion and garlic in 1 tsp oil,\nadd beans with a little water and cumin, simmer 5 min,\nmash a third with a fork.\nDry: soak overnight, boil 45–60 min.\n\nEGGS\nStart in cold water, bring to the boil, 9 min for firm.\nStraight into cold water so they peel easily."], ["Day 3 dinner — chicken and greens", 470, 50, "Chicken breast 220 g + green beans or broccoli, 1 tsp oil", "Slice the breast horizontally into two thin pieces so it cooks evenly.\nSeason both sides: salt, pepper, paprika, garlic powder, lemon.\nHot pan, 2 min. 1 tsp oil spread with a paper towel.\nLay it down, don't touch it for 4 min. Flip once, 3–4 min more.\nFirm to the touch, not squishy. Rest 3 min before cutting.\nBetter marinated: 2 tbsp yoghurt + lemon + garlic + salt, 30 min."], ["Day 4 lunch — chicken thighs and rice", 560, 45, "Chicken thighs 200 g skinless + 150 g cooked rice + cooked vegetables", "Season as for the breast. Thighs are more forgiving.\nMedium heat, 1 tsp oil: 6 min one side, 5 min the other.\nOr oven: 200°C for 25 min.\n\nRICE\nRinse 50 g dry rice until the water runs clear.\nAdd 100 ml water and a pinch of salt.\nBoil uncovered, drop to minimum heat, cover, 12 min.\nHeat off, lid on, rest 5 min. Fluff with a fork.\nMakes 150 g cooked. Do three days' worth at once."], ["Day 4 dinner — fish and salad", 450, 45, "Fish fillet 250 g + large salad + 2 slices bread", "Pat completely dry — wet fish steams instead of browning.\nSeason: salt, pepper, cumin or paprika, lemon.\nMedium-high pan, 1 tsp oil, presentation side down first.\n3–4 min without moving it, flip gently, 2–3 min more.\nDone when it flakes with a fork.\nOven version: 200°C on baking paper, 12–15 min, no flipping."], ["Day 5 lunch — fish and rice", 580, 50, "Fish fillet 250 g + 150 g cooked rice + vegetables", "Pat completely dry — wet fish steams instead of browning.\nSeason: salt, pepper, cumin or paprika, lemon.\nMedium-high pan, 1 tsp oil, presentation side down first.\n3–4 min without moving it, flip gently, 2–3 min more.\nDone when it flakes with a fork.\nOven version: 200°C on baking paper, 12–15 min, no flipping.\n\nRICE\nRinse 50 g dry rice until the water runs clear.\nAdd 100 ml water and a pinch of salt.\nBoil uncovered, drop to minimum heat, cover, 12 min.\nHeat off, lid on, rest 5 min. Fluff with a fork.\nMakes 150 g cooked. Do three days' worth at once."], ["Day 5 dinner — chicken and roasted veg", 480, 48, "Chicken breast 200 g + roasted vegetables + 1 slice bread", "Slice the breast horizontally into two thin pieces so it cooks evenly.\nSeason both sides: salt, pepper, paprika, garlic powder, lemon.\nHot pan, 2 min. 1 tsp oil spread with a paper towel.\nLay it down, don't touch it for 4 min. Flip once, 3–4 min more.\nFirm to the touch, not squishy. Rest 3 min before cutting.\nBetter marinated: 2 tbsp yoghurt + lemon + garlic + salt, 30 min.\n\nROASTED VEG\nChop courgette, pepper, onion, cauliflower, broccoli to a similar size.\nToss with 1 tsp oil, salt, pepper, paprika.\nSingle layer on the tray — piled up they steam and go soggy.\n200°C for 25 min, shake once halfway."], ["Day 6 lunch — chicken and pasta", 600, 50, "Chicken breast 200 g + pasta 60 g dry + vegetable sauce", "Salt the water well, 70 g pasta, 9–11 min.\nMeanwhile: 1 tsp oil, onion 3 min, garlic 30 sec.\nAdd chopped or crushed tomato, pepper, courgette. Simmer 8 min.\nAdd cooked chicken strips, salt, pepper, oregano.\nSave 3 tbsp pasta water and stir it in so the sauce clings."], ["Day 6 dinner — beans, salad and eggs", 500, 35, "1 cup beans + large salad + 2 boiled eggs", "Canned: drain and rinse. Onion and garlic in 1 tsp oil,\nadd beans with a little water and cumin, simmer 5 min,\nmash a third with a fork.\nDry: soak overnight, boil 45–60 min.\n\nEGGS\nStart in cold water, bring to the boil, 9 min for firm.\nStraight into cold water so they peel easily."], ["Day 7 lunch — thighs and rice", 550, 45, "Chicken thighs 200 g + 150 g cooked rice + vegetables", "Season as for the breast. Thighs are more forgiving.\nMedium heat, 1 tsp oil: 6 min one side, 5 min the other.\nOr oven: 200°C for 25 min.\n\nRICE\nRinse 50 g dry rice until the water runs clear.\nAdd 100 ml water and a pinch of salt.\nBoil uncovered, drop to minimum heat, cover, 12 min.\nHeat off, lid on, rest 5 min. Fluff with a fork.\nMakes 150 g cooked. Do three days' worth at once."], ["Day 7 dinner — fish and roasted veg", 440, 42, "Fish fillet 250 g + roasted vegetables + 1 slice bread", "Pat completely dry — wet fish steams instead of browning.\nSeason: salt, pepper, cumin or paprika, lemon.\nMedium-high pan, 1 tsp oil, presentation side down first.\n3–4 min without moving it, flip gently, 2–3 min more.\nDone when it flakes with a fork.\nOven version: 200°C on baking paper, 12–15 min, no flipping.\n\nROASTED VEG\nChop courgette, pepper, onion, cauliflower, broccoli to a similar size.\nToss with 1 tsp oil, salt, pepper, paprika.\nSingle layer on the tray — piled up they steam and go soggy.\n200°C for 25 min, shake once halfway."], ["Protein drink", 150, 28, "Mid-morning, 25–30 g protein", ""], ["Coffee with milk + sweet snack", 230, 5, "150 ml milk coffee plus the day's planned snack", ""], ["Snack — dates with milk coffee", 150, 2, "2–3 dates", ""], ["Snack — fruit and nuts", 150, 4, "1 apple or orange + 15 g nuts. Count the nuts out, don't pour.", ""], ["Snack — dark chocolate", 150, 2, "25 g dark chocolate", ""], ["Snack — fruit and yoghurt", 150, 6, "1 fruit + small plain yoghurt", ""]];
+
+function seedMeals(){
+  if(DB.prefs.mealsSeeded) return;
+  SEED_MEALS.forEach(m => {
+    if(!DB.meals.some(x => x.name.toLowerCase() === m[0].toLowerCase()))
+      DB.meals.push({id:uid(), name:m[0], kcal:m[1], protein:m[2], desc:m[3], recipe:m[4], ts:Date.now()});
+  });
+  DB.prefs.mealsSeeded = 1;
+}
+
+function renderMeals(){
+  const list = document.getElementById("mealList");
+  list.innerHTML = "";
+  const rows = [...(DB.meals||[])];
+  if(!rows.length){
+    const li=document.createElement("li");
+    li.innerHTML='<p class="empty">No meals yet. Add one above.</p>';
+    list.appendChild(li);
+    return;
+  }
+  rows.forEach(m => {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.className = "line";
+    btn.innerHTML = '<span class="name"></span><span class="portion"></span><span class="leader"></span><span class="kcal">' + fmt(m.kcal) + '</span>';
+    btn.querySelector(".name").textContent = m.name;
+    btn.querySelector(".portion").textContent = m.protein ? "· " + m.protein + " g protein" : "";
+    btn.onclick = () => { openMeal = openMeal === m.id ? null : m.id; renderMeals(); };
+    li.appendChild(btn);
+
+    if(openMeal === m.id){
+      const body = document.createElement("div");
+      body.className = "mealbody";
+      if(m.desc){ const p=document.createElement("p"); p.className="desc"; p.textContent=m.desc; body.appendChild(p); }
+      if(m.recipe){ const r=document.createElement("p"); r.className="rec"; r.textContent=m.recipe; body.appendChild(r); }
+      const row = document.createElement("div");
+      row.className = "btnrow";
+      const add = document.createElement("button");
+      add.className = "btn primary";
+      add.textContent = "Add to log";
+      add.onclick = async () => {
+        DB.foods.push({id:uid(), date:viewDate, name:m.name, portion:"meal", kcal:m.kcal, basis:m.desc||"", ts:Date.now()});
+        await save(); renderAll(); toast("Added to " + (viewDate===todayISO() ? "today" : viewDate));
+      };
+      const del = document.createElement("button");
+      del.className = "btn ghost";
+      del.style.borderColor = "var(--signal)"; del.style.color = "var(--signal)";
+      del.textContent = "Delete";
+      del.onclick = async () => {
+        DB.meals = DB.meals.filter(x => x.id !== m.id);
+        openMeal = null; await save(); renderAll(); toast("Meal deleted");
+      };
+      row.appendChild(add); row.appendChild(del);
+      body.appendChild(row);
+      li.appendChild(body);
+    }
+    list.appendChild(li);
+  });
+}
+
 /* ---------------- rendering ---------------- */
 function renderDay(){
   const isToday = viewDate === todayISO();
@@ -1120,7 +1235,7 @@ function renderWeight(){
 }
 
 function renderAll(){
-  [renderDay, renderMove, renderTrends, renderWeight, buildPlan].forEach(fn => {
+  [renderDay, renderMove, renderMeals, renderTrends, renderWeight, buildPlan].forEach(fn => {
     try { fn(); } catch(e){ console.error(fn.name, e); }
   });
 }
@@ -1167,6 +1282,24 @@ document.getElementById("aMin").oninput=()=>{
 
 /* typing your own number takes over from the library rate */
 document.getElementById("aKcal").oninput=()=>{ delete document.getElementById("aKcal").dataset.kpm; };
+
+document.getElementById("saveMeal").onclick=async()=>{
+  const name=document.getElementById("mName").value.trim();
+  const kcal=parseFloat(document.getElementById("mKcal").value);
+  const prot=parseFloat(document.getElementById("mProtein").value);
+  const hint=document.getElementById("mealHint");
+  hint.classList.remove("err");
+  if(!name){ hint.textContent="Give the meal a name."; hint.classList.add("err"); return; }
+  if(!isFinite(kcal)||kcal<0){ hint.textContent="Add the calories for one serving."; hint.classList.add("err"); return; }
+  const existing=DB.meals.find(m=>m.name.toLowerCase()===name.toLowerCase());
+  const payload={name, kcal:Math.round(kcal), protein:isFinite(prot)?Math.round(prot):0,
+                 desc:document.getElementById("mDesc").value.trim(),
+                 recipe:document.getElementById("mRecipe").value.trim()};
+  if(existing){ Object.assign(existing,payload); hint.textContent="Updated “"+name+"”."; }
+  else { DB.meals.unshift(Object.assign({id:uid(),ts:Date.now()},payload)); hint.textContent="Saved. It'll show up in Log search."; }
+  ["mName","mKcal","mProtein","mDesc","mRecipe"].forEach(id=>document.getElementById(id).value="");
+  await save(); renderAll();
+};
 
 document.getElementById("addAct").onclick=async()=>{
   const name=document.getElementById("aName").value.trim() || "Activity";
@@ -1267,7 +1400,7 @@ document.querySelectorAll("nav.tabs button").forEach(b=>{
   b.onclick=()=>{
     document.querySelectorAll("nav.tabs button").forEach(x=>x.removeAttribute("aria-current"));
     b.setAttribute("aria-current","page");
-    ["log","move","trends","weight","goal"].forEach(v=>document.getElementById("view-"+v).hidden = v!==b.dataset.view);
+    ["log","move","meals","trends","weight","goal"].forEach(v=>document.getElementById("view-"+v).hidden = v!==b.dataset.view);
     window.scrollTo({top:0});
   };
 });
@@ -1317,6 +1450,8 @@ document.getElementById("importFile").onchange=async(e)=>{
     (p.acts||[]).forEach(a=>{ if(a&&a.id&&!aid.has(a.id)) DB.acts.push(a); });
     const ak=new Set((DB.customActs||[]).map(c=>c.name.toLowerCase()));
     (p.customActs||[]).forEach(c=>{ if(c&&c.name&&!ak.has(c.name.toLowerCase())) DB.customActs.push(c); });
+    const mk=new Set((DB.meals||[]).map(m=>m.name.toLowerCase()));
+    (p.meals||[]).forEach(m=>{ if(m&&m.name&&!mk.has(m.name.toLowerCase())) DB.meals.push(m); });
     const ck=new Set((DB.custom||[]).map(c=>c.name.toLowerCase()));
     (p.custom||[]).forEach(c=>{ if(c&&c.name&&!ck.has(c.name.toLowerCase())) DB.custom.push(c); });
     if(p.prefs) DB.prefs=Object.assign(DB.prefs,p.prefs);
@@ -1343,7 +1478,7 @@ document.getElementById("clearCustom").onclick=async()=>{
 document.getElementById("wipeBtn").onclick=async()=>{
   const h=document.getElementById("setHint");
   if(h.dataset.armed!=="1"){ h.dataset.armed="1"; h.textContent="Tap again to erase every food and weight record."; h.classList.add("err"); return; }
-  DB={foods:[],weights:[],acts:[],custom:[],customActs:[],prefs:DB.prefs};
+  DB={foods:[],weights:[],acts:[],meals:[],custom:[],customActs:[],prefs:DB.prefs};
   h.dataset.armed="0"; h.classList.remove("err"); h.textContent="Everything erased.";
   await save(); renderAll();
 };
@@ -1351,6 +1486,8 @@ document.getElementById("wipeBtn").onclick=async()=>{
 /* ---------------- boot ---------------- */
 (async function(){
   await load();
+  seedMeals();
+  await save();
   document.getElementById("wDate").value=todayISO();
   document.getElementById("wDate").max=todayISO();
   loadPlanFields();
