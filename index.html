@@ -30,6 +30,8 @@
   --signal:#C2410C;
   --warn:#C9761A;
   --over:#B3261E;
+  --field:#FFFFFF;
+  --tabbg:rgba(237,239,234,.94);
   --shadow:0 1px 0 rgba(22,33,28,.06);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -66,7 +68,7 @@ header{padding:calc(14px + env(safe-area-inset-top)) 0 8px}
 .field{display:block;margin-bottom:10px}
 .field label{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--spruce);margin-bottom:5px;font-weight:600}
 input[type=text],input[type=number],input[type=date],select,textarea{
-  width:100%;font:inherit;color:var(--ink);background:#fff;
+  width:100%;font:inherit;color:var(--ink);background:var(--field);
   border:1px solid var(--rule);border-radius:9px;padding:11px 12px;appearance:none;font-family:inherit;resize:vertical}
 textarea{resize:vertical;line-height:1.5;font-size:15px}
 input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--cobalt);outline-offset:2px}
@@ -80,6 +82,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .btn{flex:1;font:inherit;font-weight:600;border-radius:9px;padding:12px;border:1px solid var(--ink);cursor:pointer}
 .btn.primary{background:var(--ink);color:var(--paper)}
 .btn.ghost{background:transparent;color:var(--ink);border-color:var(--rule)}
+.wlist .x{color:var(--signal)}
 .btn:disabled{opacity:.45;cursor:default}
 .hint{font-size:12.5px;color:var(--spruce);margin:9px 0 0;min-height:1.2em}
 .hint.err{color:var(--signal)}
@@ -93,7 +96,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 
 /* recents */
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
-.chip{font:inherit;font-size:13px;background:#fff;border:1px solid var(--rule);border-radius:999px;padding:6px 11px;cursor:pointer;color:var(--ink)}
+.chip{font:inherit;font-size:13px;background:var(--field);border:1px solid var(--rule);border-radius:999px;padding:6px 11px;cursor:pointer;color:var(--ink)}
 .chip span{font-family:"IBM Plex Mono",monospace;color:var(--spruce);font-size:12px;margin-left:5px}
 
 /* tally list */
@@ -110,14 +113,14 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .mealbody .d{color:var(--spruce);margin-bottom:8px}
 .mealbody .r{white-space:pre-line;font-size:13.5px;color:var(--spruce);border-left:2px solid var(--rule);padding-left:11px;margin-bottom:10px}
 .mealbody .acts{display:flex;gap:8px}
-.mealbody button{font:inherit;font-size:13px;font-weight:600;border-radius:8px;padding:7px 13px;cursor:pointer;background:#fff;border:1px solid var(--ink);color:var(--ink)}
+.mealbody button{font:inherit;font-size:13px;font-weight:600;border-radius:8px;padding:7px 13px;cursor:pointer;background:var(--field);border:1px solid var(--ink);color:var(--ink)}
 .mealbody button.del{border-color:var(--signal);color:var(--signal)}
 .mealbody{padding:0 0 14px;font-size:14px;color:var(--ink)}
 .mealbody .desc{color:var(--spruce);margin:0 0 8px}
 .mealbody .rec{white-space:pre-wrap;border-left:2px solid var(--rule);padding-left:11px;margin:0 0 12px;color:var(--spruce);font-size:13.5px;line-height:1.55}
 .mealbody .btnrow{margin:0}
 .mealbody .btnrow button{padding:9px}
-.tray button{font:inherit;font-size:13px;font-weight:600;border-radius:8px;padding:7px 13px;cursor:pointer;background:#fff;border:1px solid var(--signal);color:var(--signal)}
+.tray button{font:inherit;font-size:13px;font-weight:600;border-radius:8px;padding:7px 13px;cursor:pointer;background:var(--field);border:1px solid var(--signal);color:var(--signal)}
 .empty{padding:26px 0;color:var(--spruce);font-size:14.5px;border-bottom:1px solid var(--rule)}
 
 .pinned{position:sticky;top:0;z-index:15;margin:14px 0 18px}
@@ -133,7 +136,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .total .line{cursor:default;padding-bottom:6px}
 .total .name{font-family:"Fraunces",serif;font-size:19px}
 .total .kcal{font-size:19px;font-weight:500}
-.meter{height:7px;background:#fff;border:1px solid var(--rule);border-radius:99px;overflow:hidden}
+.meter{height:7px;background:var(--field);border:1px solid var(--rule);border-radius:99px;overflow:hidden}
 .meter i{display:block;height:100%;background:var(--spruce);border-radius:99px;transition:width .45s cubic-bezier(.2,.8,.2,1)}
 .meter.warn i{background:var(--warn)}
 .meter.over i{background:var(--over)}
@@ -165,7 +168,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .legend{display:flex;gap:14px;margin:-6px 0 13px;font-size:12px;color:var(--spruce);flex-wrap:wrap}
 .legend label{display:flex;align-items:center;gap:0;cursor:pointer;user-select:none}
 .legend input{appearance:none;width:15px;height:15px;border:1px solid var(--rule);border-radius:4px;
-  background:#fff;margin:0 7px 0 0;position:relative;cursor:pointer;flex:none}
+  background:var(--field);margin:0 7px 0 0;position:relative;cursor:pointer;flex:none}
 .legend input:checked{background:var(--ink);border-color:var(--ink)}
 .legend input:checked::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;
   border:solid var(--paper);border-width:0 2px 2px 0;transform:rotate(45deg)}
@@ -188,13 +191,25 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .wlist .x{background:none;border:0;color:var(--signal);font:inherit;font-size:18px;padding:2px 4px;cursor:pointer;line-height:1}
 
 /* tabs */
-nav.tabs{position:fixed;left:0;right:0;bottom:0;background:rgba(237,239,234,.94);
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--tabbg);
   backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
   border-top:1px solid var(--rule);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:20}
 nav.tabs button{flex:1;background:none;border:0;font:inherit;font-size:9.5px;letter-spacing:.02em;text-transform:uppercase;
   font-weight:600;color:var(--spruce);padding:15px 1px;cursor:pointer;position:relative}
 nav.tabs button[aria-current=page]{color:var(--ink)}
 nav.tabs button[aria-current=page]::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:9px;width:16px;height:2px;background:var(--ink)}
+
+.themegrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.themecard{border:1px solid var(--rule);border-radius:11px;padding:10px;background:var(--field);
+  cursor:pointer;font:inherit;color:var(--ink);text-align:left}
+.themecard[aria-pressed=true]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.themecard .sw{display:flex;gap:4px;margin-bottom:7px}
+.themecard .sw i{width:100%;height:17px;border-radius:4px;border:1px solid rgba(0,0,0,.08)}
+.themecard span{font-size:13px;font-weight:600}
+.accentrow{display:flex;gap:9px;flex-wrap:wrap}
+.accentrow button{width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.accentrow button[aria-pressed=true]{border-color:var(--ink)}
+.iconbtn+.iconbtn{margin-left:12px}
 
 /* settings sheet */
 dialog{border:0;border-radius:16px;padding:0;max-width:400px;width:calc(100% - 32px);background:var(--paper);color:var(--ink)}
@@ -217,7 +232,7 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
   <header>
     <div class="topbar">
       <h1 class="brand">Corfit<em>.</em></h1>
-      <button class="iconbtn" id="openSettings">Settings</button>
+      <span><button class="iconbtn" id="openTheme">Theme</button><button class="iconbtn" id="openSettings">Settings</button></span>
     </div>
   </header>
 
@@ -347,6 +362,10 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
       <div class="field">
         <label for="mDesc">What's in it</label>
         <input type="text" id="mDesc" placeholder="Chicken breast 200 g + 150 g rice + salad">
+      </div>
+      <div class="field">
+        <label for="mSource">Chef or source</label>
+        <input type="text" id="mSource" placeholder="Mum, Ottolenghi, my 8-week plan…" autocomplete="off">
       </div>
       <div class="field">
         <label for="mRecipe">Recipe (optional)</label>
@@ -516,6 +535,20 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
   <button data-view="weight">Weight</button>
   <button data-view="goal">Goal</button>
 </nav>
+
+<dialog id="themeSheet">
+  <div class="sheet">
+    <h2>Theme</h2>
+    <p class="hint" style="margin:-8px 0 14px">Tap a palette to try it. It applies straight away.</p>
+    <div class="themegrid" id="themeGrid"></div>
+    <p class="eyebrow" style="margin:18px 0 8px">Accent</p>
+    <div class="accentrow" id="accentRow"></div>
+    <div class="btnrow" style="margin-top:18px">
+      <button class="btn ghost" id="resetTheme">Reset</button>
+      <button class="btn primary" id="closeTheme">Done</button>
+    </div>
+  </div>
+</dialog>
 
 <dialog id="settings">
   <div class="sheet">
@@ -1022,6 +1055,14 @@ const MEAL_REF = [["Grilled chicken, rice & salad",580,50,"Chicken breast 200 g 
 
 /* One-off tidy-up: an earlier build copied the plan's meals into the user's own
    list. Those are reference material now, so drop them and keep anything real. */
+function tidyMealSources(){
+  let touched = false;
+  (DB.meals||[]).forEach(m => {
+    if(!m.source || !String(m.source).trim()){ m.source = "NA"; touched = true; }
+  });
+  if(touched) save();
+}
+
 function tidyPortions(){
   let touched = false;
   (DB.foods||[]).forEach(f => { const c = cleanPortion(f.portion); if(c !== f.portion){ f.portion = c; touched = true; } });
@@ -1040,7 +1081,7 @@ function tidyMeals(){
 
 function allMeals(){
   return (DB.meals || []).map(m => ({...m, own:true}))
-    .concat(MEAL_REF.map(m => ({name:m[0], kcal:m[1], prot:m[2], desc:m[3], recipe:m[4], own:false})));
+    .concat(MEAL_REF.map(m => ({name:m[0], kcal:m[1], prot:m[2], desc:m[3], recipe:m[4], source:"8-week plan", own:false})));
 }
 
 function mealRow(m, target){
@@ -1049,7 +1090,10 @@ function mealRow(m, target){
   btn.className = "line";
   btn.innerHTML = '<span class="name"></span><span class="portion"></span><span class="leader"></span><span class="kcal">' + fmt(m.kcal) + '</span>';
   btn.querySelector(".name").textContent = m.name;
-  btn.querySelector(".portion").textContent = m.prot ? "· " + m.prot + " g protein" : "";
+  const tags = [];
+  if(m.prot) tags.push(m.prot + " g protein");
+  tags.push(m.source || "NA");
+  btn.querySelector(".portion").textContent = "· " + tags.join(" · ");
   const key = (m.own ? "own:" : "ref:") + m.name;
   btn.onclick = () => { openRow = openRow === key ? null : key; renderMeals(); };
   li.appendChild(btn);
@@ -1058,6 +1102,10 @@ function mealRow(m, target){
     const body = document.createElement("div");
     body.className = "mealbody";
     if(m.desc){ const d = document.createElement("div"); d.className = "d"; d.textContent = m.desc; body.appendChild(d); }
+    const src = document.createElement("div");
+    src.className = "d";
+    src.textContent = "Source: " + (m.source || "NA");
+    body.appendChild(src);
     if(m.recipe){ const r = document.createElement("div"); r.className = "r"; r.textContent = m.recipe; body.appendChild(r); }
     const acts = document.createElement("div");
     acts.className = "acts";
@@ -1076,6 +1124,7 @@ function mealRow(m, target){
         document.getElementById("mKcal").value = m.kcal;
         document.getElementById("mProt").value = m.prot || "";
         document.getElementById("mDesc").value = m.desc || "";
+        document.getElementById("mSource").value = m.source || "";
         document.getElementById("mRecipe").value = m.recipe || "";
         openRow = null; renderMeals();
         document.getElementById("mealHint").textContent = "Editing " + m.name + " — save to overwrite it.";
@@ -1093,7 +1142,7 @@ function mealRow(m, target){
       const copy = document.createElement("button");
       copy.textContent = "Copy to my meals";
       copy.onclick = async () => {
-        DB.meals.push({id:uid(), name:m.name, kcal:m.kcal, prot:m.prot, desc:m.desc, recipe:m.recipe, ts:Date.now()});
+        DB.meals.push({id:uid(), name:m.name, kcal:m.kcal, prot:m.prot, desc:m.desc, source:m.source||'NA', recipe:m.recipe, ts:Date.now()});
         openRow = null; await save(); renderAll(); toast("Copied");
       };
       acts.appendChild(copy);
@@ -1117,7 +1166,88 @@ function renderMeals(){
 
   const ref = document.getElementById("refMealList");
   ref.innerHTML = "";
-  MEAL_REF.forEach(m => mealRow({name:m[0], kcal:m[1], prot:m[2], desc:m[3], recipe:m[4], own:false}, ref));
+  MEAL_REF.forEach(m => mealRow({name:m[0], kcal:m[1], prot:m[2], desc:m[3], recipe:m[4], source:"8-week plan", own:false}, ref));
+}
+
+
+/* ---------------- themes ---------------- */
+const THEMES = {
+  porcelain: { name:"Porcelain", vars:{
+    porcelain:"#EDEFEA", paper:"#F7F8F5", ink:"#16211C", spruce:"#2C4A3B", rule:"#C9CFC5",
+    field:"#FFFFFF", tabbg:"rgba(237,239,234,.94)", cobalt:"#1F4EE0", warn:"#C9761A", over:"#B3261E", signal:"#C2410C" }},
+  sand: { name:"Sand", vars:{
+    porcelain:"#F1EBE0", paper:"#FAF6EE", ink:"#2A2318", spruce:"#6B5B44", rule:"#DCD1BE",
+    field:"#FFFDF9", tabbg:"rgba(241,235,224,.94)", cobalt:"#2F6F5E", warn:"#B87333", over:"#A5321F", signal:"#A5432B" }},
+  ocean: { name:"Ocean", vars:{
+    porcelain:"#EAF0F3", paper:"#F5FAFC", ink:"#0F2229", spruce:"#2C5262", rule:"#C0D2DA",
+    field:"#FFFFFF", tabbg:"rgba(234,240,243,.94)", cobalt:"#0E7C86", warn:"#C07A18", over:"#AE2C2C", signal:"#B0452C" }},
+  rose: { name:"Rose", vars:{
+    porcelain:"#F3EDED", paper:"#FCF7F7", ink:"#241A1C", spruce:"#6A4750", rule:"#DBC8CB",
+    field:"#FFFFFF", tabbg:"rgba(243,237,237,.94)", cobalt:"#A63D5B", warn:"#C07430", over:"#9E2233", signal:"#A83A46" }},
+  graphite: { name:"Graphite", vars:{
+    porcelain:"#15181B", paper:"#1D2227", ink:"#E7ECEF", spruce:"#9AA7AF", rule:"#2F363C",
+    field:"#232A30", tabbg:"rgba(21,24,27,.94)", cobalt:"#6FA8FF", warn:"#E0A33C", over:"#F0655A", signal:"#F08262" }},
+  midnight: { name:"Midnight", vars:{
+    porcelain:"#101322", paper:"#181D30", ink:"#E6E9F4", spruce:"#98A0C2", rule:"#272E49",
+    field:"#1E2438", tabbg:"rgba(16,19,34,.94)", cobalt:"#8B7BFF", warn:"#E3A94A", over:"#F26B72", signal:"#F0808A" }}
+};
+const ACCENTS = ["#1F4EE0","#0E7C86","#2F6F5E","#A63D5B","#8B7BFF","#C9761A"];
+
+function themeKey(){
+  const k = DB.prefs.theme || "porcelain";
+  if(k !== "auto") return THEMES[k] ? k : "porcelain";
+  const dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  return dark ? "graphite" : "porcelain";
+}
+
+function applyTheme(){
+  const t = THEMES[themeKey()];
+  const root = document.documentElement.style;
+  Object.entries(t.vars).forEach(([k,v]) => root.setProperty("--"+k, v));
+  if(DB.prefs.accent) root.setProperty("--cobalt", DB.prefs.accent);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.setAttribute("content", t.vars.porcelain);
+}
+
+function renderThemeSheet(){
+  const grid = document.getElementById("themeGrid");
+  grid.innerHTML = "";
+  const current = DB.prefs.theme || "porcelain";
+  const entries = [["auto", {name:"Match device", vars:THEMES.porcelain.vars}]].concat(Object.entries(THEMES));
+  entries.forEach(([key, t]) => {
+    const card = document.createElement("button");
+    card.className = "themecard";
+    card.setAttribute("aria-pressed", String(key === current));
+    const v = key === "auto" ? THEMES[themeKey()].vars : t.vars;
+    card.innerHTML = '<div class="sw">' +
+      '<i style="background:' + v.porcelain + '"></i>' +
+      '<i style="background:' + v.ink + '"></i>' +
+      '<i style="background:' + (DB.prefs.accent || v.cobalt) + '"></i>' +
+      '</div><span></span>';
+    card.querySelector("span").textContent = t.name;
+    card.onclick = async () => {
+      DB.prefs.theme = key;
+      applyTheme(); renderThemeSheet(); renderAll();
+      await save();
+    };
+    grid.appendChild(card);
+  });
+
+  const row = document.getElementById("accentRow");
+  row.innerHTML = "";
+  const active = DB.prefs.accent || THEMES[themeKey()].vars.cobalt;
+  ACCENTS.forEach(c => {
+    const b = document.createElement("button");
+    b.style.background = c;
+    b.setAttribute("aria-label", "Accent " + c);
+    b.setAttribute("aria-pressed", String(c.toLowerCase() === String(active).toLowerCase()));
+    b.onclick = async () => {
+      DB.prefs.accent = c;
+      applyTheme(); renderThemeSheet(); renderAll();
+      await save();
+    };
+    row.appendChild(b);
+  });
 }
 
 /* ---------------- rendering ---------------- */
@@ -1141,7 +1271,8 @@ function renderDay(){
     btn.className="line";
     btn.innerHTML='<span class="name"></span><span class="portion"></span><span class="leader"></span><span class="kcal">'+fmt(f.kcal)+'</span>';
     btn.querySelector(".name").textContent=f.name;
-    btn.querySelector(".portion").textContent=f.portion?"· "+f.portion:"";
+    const shownPortion = cleanPortion(f.portion);
+    btn.querySelector(".portion").textContent = shownPortion ? "· "+shownPortion : "";
     btn.onclick=()=>{ openRow = openRow===f.id ? null : f.id; renderDay(); };
     li.appendChild(btn);
     if(openRow===f.id){
@@ -1384,12 +1515,13 @@ document.getElementById("saveMeal").onclick=async()=>{
     name, kcal:Math.round(kcal),
     prot: isFinite(prot)&&prot>0 ? Math.round(prot) : 0,
     desc: document.getElementById("mDesc").value.trim(),
+    source: document.getElementById("mSource").value.trim() || "NA",
     recipe: document.getElementById("mRecipe").value.trim()
   };
   const existing=(DB.meals||[]).find(x=>x.name.toLowerCase()===name.toLowerCase());
   if(existing) Object.assign(existing, entry);
   else DB.meals.push({id:uid(), ts:Date.now(), ...entry});
-  ["mName","mKcal","mProt","mDesc","mRecipe"].forEach(id=>document.getElementById(id).value="");
+  ["mName","mKcal","mProt","mDesc","mSource","mRecipe"].forEach(id=>document.getElementById(id).value="");
   hint.textContent = existing ? "Updated." : "Saved. It'll show up when you search on the Log tab.";
   await save(); renderAll();
 };
@@ -1434,6 +1566,7 @@ document.getElementById("mealsFile").onchange=async(e)=>{
         kcal:Math.round(m.kcal),
         prot: Math.round(m.prot || m.protein || 0),
         desc: m.desc ? String(m.desc) : "",
+        source: (m.source || m.chef || "").toString().trim() || "NA",
         recipe: m.recipe ? String(m.recipe) : ""
       };
       DB.meals.push(clean);
@@ -1580,6 +1713,19 @@ document.getElementById("applyGoal").onclick=async()=>{
   };
 });
 
+const themeDlg=document.getElementById("themeSheet");
+document.getElementById("openTheme").onclick=()=>{ renderThemeSheet(); themeDlg.showModal(); };
+document.getElementById("closeTheme").onclick=()=>themeDlg.close();
+document.getElementById("resetTheme").onclick=async()=>{
+  DB.prefs.theme="porcelain"; delete DB.prefs.accent;
+  applyTheme(); renderThemeSheet(); renderAll(); await save();
+};
+if(window.matchMedia){
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ()=>{
+    if((DB.prefs.theme||"porcelain")==="auto") applyTheme();
+  });
+}
+
 const dlg=document.getElementById("settings");
 document.getElementById("openSettings").onclick=()=>{
   document.getElementById("sGoal").value=DB.prefs.goal||"";
@@ -1653,8 +1799,10 @@ document.getElementById("wipeBtn").onclick=async()=>{
   await save();
   document.getElementById("wDate").value=todayISO();
   document.getElementById("wDate").max=todayISO();
+  applyTheme();
   tidyMeals();
   tidyPortions();
+  tidyMealSources();
   if(DB.prefs.series){
     document.getElementById("showEaten").checked = !!DB.prefs.series.eaten;
     document.getElementById("showBurn").checked  = !!DB.prefs.series.burn;
