@@ -100,8 +100,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .tally{list-style:none;margin:0;padding:0}
 .tally li{border-bottom:1px dotted var(--rule)}
 .line{display:flex;align-items:flex-end;gap:8px;width:100%;background:none;border:0;font:inherit;color:var(--ink);text-align:left;padding:11px 0;cursor:pointer}
-.line .name{flex:0 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62%}
-.line .portion{font-size:12.5px;color:var(--spruce);white-space:nowrap}
+.line .name{flex:1 1 auto;min-width:42%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line .portion{flex:0 1 auto;min-width:0;font-size:12.5px;color:var(--spruce);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .leader{flex:1 1 auto;border-bottom:1px dotted var(--rule);transform:translateY(-5px);min-width:14px}
 .line .kcal{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
 .tray{display:flex;gap:8px;align-items:center;padding:0 0 12px}
@@ -645,6 +645,11 @@ function scoreName(name, q, words){
   return hits ? hits * 100 - n.length : 0;
 }
 
+/* result subtitles carry tags like "· saved"; they must never be stored as the portion */
+function cleanPortion(p){
+  return String(p||"").replace(/(\s*·?\s*(saved|meal))+\s*$/i,"").trim();
+}
+
 function localMatches(q){
   const ql = q.toLowerCase().trim();
   if(ql.length < 2) return [];
@@ -660,7 +665,7 @@ function localMatches(q){
 
   (DB.custom || []).forEach(c => {
     const sc = scoreName(c.name, ql, words);
-    if (sc > 0) rows.push({sc: sc + 200, name: c.name, sub: (c.portion ? c.portion + " · saved" : "saved"), kcal: c.kcal});
+    if (sc > 0) rows.push({sc: sc + 200, name: c.name, sub: (cleanPortion(c.portion) ? cleanPortion(c.portion) + " · saved" : "saved"), kcal: c.kcal});
   });
 
   // curated per-portion dishes next
@@ -716,9 +721,9 @@ function showResults(list){
     b.querySelector(".rsub").textContent = r.sub;
     b.onclick = () => {
       document.getElementById("fName").value = r.name;
-      document.getElementById("fPortion").value = r.sub;
+      document.getElementById("fPortion").value = cleanPortion(r.sub);
       document.getElementById("fKcal").value = r.kcal;
-      document.getElementById("fKcal").dataset.basis = r.sub;
+      document.getElementById("fKcal").dataset.basis = cleanPortion(r.sub);
       box.innerHTML = "";
       renderCalc();
       document.getElementById("foodHint").textContent = "Adjust the number, or set Times for multiple servings.";
@@ -1017,6 +1022,13 @@ const MEAL_REF = [["Grilled chicken, rice & salad",580,50,"Chicken breast 200 g 
 
 /* One-off tidy-up: an earlier build copied the plan's meals into the user's own
    list. Those are reference material now, so drop them and keep anything real. */
+function tidyPortions(){
+  let touched = false;
+  (DB.foods||[]).forEach(f => { const c = cleanPortion(f.portion); if(c !== f.portion){ f.portion = c; touched = true; } });
+  (DB.custom||[]).forEach(c => { const p = cleanPortion(c.portion); if(p !== c.portion){ c.portion = p; touched = true; } });
+  if(touched) save();
+}
+
 function tidyMeals(){
   if(!DB.prefs.mealsSeeded) return;
   const before = DB.meals.length;
@@ -1511,7 +1523,7 @@ document.getElementById("addFood").onclick=async()=>{
   hint.classList.remove("err");
   if(kcal===null){ hint.textContent="Add a calorie number, or tap a match above."; hint.classList.add("err"); return; }
   const baseKcal = Math.round(parseFloat(document.getElementById("fKcal").value));
-  const isNew = rememberFood(name, document.getElementById("fPortion").value.trim(), baseKcal);
+  const isNew = rememberFood(name, cleanPortion(document.getElementById("fPortion").value), baseKcal);
   if(m!==1) portion = portion ? portion+" ×"+m : "×"+m;
   DB.foods.push({id:uid(),date:viewDate,name,portion,kcal,basis:document.getElementById("fKcal").dataset.basis||"",ts:Date.now()});
   ["fName","fPortion","fKcal","fMult"].forEach(id=>document.getElementById(id).value="");
@@ -1642,6 +1654,7 @@ document.getElementById("wipeBtn").onclick=async()=>{
   document.getElementById("wDate").value=todayISO();
   document.getElementById("wDate").max=todayISO();
   tidyMeals();
+  tidyPortions();
   if(DB.prefs.series){
     document.getElementById("showEaten").checked = !!DB.prefs.series.eaten;
     document.getElementById("showBurn").checked  = !!DB.prefs.series.burn;
