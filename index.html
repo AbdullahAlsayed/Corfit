@@ -344,6 +344,12 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
         <button class="btn primary" id="saveMeal">Save meal</button>
       </div>
       <p class="hint" id="mealHint">Saved meals show up when you search on the Log tab.</p>
+      <div class="btnrow" style="margin-top:12px">
+        <button class="btn ghost" id="exportMeals">Export meals</button>
+        <button class="btn ghost" id="importMeals">Import meals</button>
+      </div>
+      <input type="file" id="mealsFile" accept="application/json,.json" hidden>
+      <p class="hint" id="transferHint">Move your meals to another phone. Duplicates are skipped by name.</p>
     </div>
 
     <p class="eyebrow">Saved</p>
@@ -1348,6 +1354,65 @@ document.getElementById("saveMeal").onclick=async()=>{
   ["mName","mKcal","mProt","mDesc","mRecipe"].forEach(id=>document.getElementById(id).value="");
   hint.textContent = existing ? "Updated." : "Saved. It'll show up when you search on the Log tab.";
   await save(); renderAll();
+};
+
+document.getElementById("exportMeals").onclick=()=>{
+  const h=document.getElementById("transferHint");
+  const meals=DB.meals||[];
+  if(!meals.length){ h.classList.add("err"); h.textContent="No meals of your own to export yet."; return; }
+  const payload={type:"corfit-meals", version:1, exported:new Date().toISOString(), meals};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="corfit-meals-"+todayISO()+".json";
+  a.click();
+  h.classList.remove("err");
+  h.textContent="Exported "+meals.length+" meal"+(meals.length>1?"s":"")+". Send the file to the other phone.";
+};
+
+document.getElementById("importMeals").onclick=()=>document.getElementById("mealsFile").click();
+
+document.getElementById("mealsFile").onchange=async(e)=>{
+  const f=e.target.files[0], h=document.getElementById("transferHint");
+  if(!f) return;
+  try{
+    const p=JSON.parse(await f.text());
+    // accepts a meals export or a full Corfit backup
+    const incoming=Array.isArray(p) ? p : (p.meals || []);
+    if(!Array.isArray(incoming) || !incoming.length) throw new Error("empty");
+    const byName=new Map((DB.meals||[]).map(m=>[m.name.trim().toLowerCase(), m]));
+    let added=0, dup=0, differs=0;
+    incoming.forEach(m=>{
+      if(!m || !m.name || !isFinite(m.kcal)) return;
+      const key=m.name.trim().toLowerCase();
+      const have=byName.get(key);
+      if(have){
+        if(Math.round(have.kcal)!==Math.round(m.kcal)) differs++; else dup++;
+        return;
+      }
+      const clean={
+        id:uid(), ts:Date.now(),
+        name:String(m.name).trim(),
+        kcal:Math.round(m.kcal),
+        prot: Math.round(m.prot || m.protein || 0),
+        desc: m.desc ? String(m.desc) : "",
+        recipe: m.recipe ? String(m.recipe) : ""
+      };
+      DB.meals.push(clean);
+      byName.set(key, clean);
+      added++;
+    });
+    h.classList.remove("err");
+    const bits=["Added "+added];
+    if(dup) bits.push(dup+" already saved");
+    if(differs) bits.push(differs+" kept as-is (same name, different calories)");
+    h.textContent=bits.join(" · ")+".";
+    await save(); renderAll();
+  }catch(err){
+    h.classList.add("err");
+    h.textContent="That file has no meals in it. Pick a Corfit meals export or a full backup.";
+  }
+  e.target.value="";
 };
 
 document.getElementById("addAct").onclick=async()=>{
