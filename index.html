@@ -158,9 +158,17 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .bars .bar.over{background:var(--signal)}
 .bars .bar.zero{background:var(--rule)}
 .bars .bar.burn{background:var(--cobalt);opacity:.85}
+.bars .bar.net{background:var(--warn);opacity:.9}
+.bars .bar.neg{opacity:.45}
 .bars .grp{flex:1;display:flex;align-items:flex-end;gap:2px;height:100%}
 .grp .bar{flex:1;min-height:2px}
-.legend{display:flex;gap:16px;margin:-6px 0 13px;font-size:12px;color:var(--spruce)}
+.legend{display:flex;gap:14px;margin:-6px 0 13px;font-size:12px;color:var(--spruce);flex-wrap:wrap}
+.legend label{display:flex;align-items:center;gap:0;cursor:pointer;user-select:none}
+.legend input{appearance:none;width:15px;height:15px;border:1px solid var(--rule);border-radius:4px;
+  background:#fff;margin:0 7px 0 0;position:relative;cursor:pointer;flex:none}
+.legend input:checked{background:var(--ink);border-color:var(--ink)}
+.legend input:checked::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;
+  border:solid var(--paper);border-width:0 2px 2px 0;transform:rotate(45deg)}
 .legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:middle}
 .goalline{position:absolute;left:0;right:0;border-top:1px dashed var(--cobalt);pointer-events:none}
 .goalline b{position:absolute;right:0;top:-16px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--cobalt);background:var(--paper);padding:0 3px;font-weight:600}
@@ -379,8 +387,9 @@ dialog::backdrop{background:rgba(22,33,28,.35)}
       <h3>In and out, last 14 days</h3>
       <p class="sub" id="barSub">Dashed line is your daily goal.</p>
       <div class="legend">
-        <span><i style="background:var(--spruce)"></i>Eaten</span>
-        <span><i style="background:var(--cobalt)"></i>Burned</span>
+        <label><input type="checkbox" id="showEaten" checked><i style="background:var(--spruce)"></i>Eaten</label>
+        <label><input type="checkbox" id="showBurn" checked><i style="background:var(--cobalt)"></i>Burned</label>
+        <label><input type="checkbox" id="showNet"><i style="background:var(--warn)"></i>Net</label>
       </div>
       <div class="bars" id="bars"><div class="goalline" id="goalline"><b>Goal</b></div></div>
       <div class="xaxis" id="xaxis"></div>
@@ -1201,34 +1210,51 @@ function renderTrends(){
 
 
   const burn14 = t14.map(d => burnOn(d.date));
-  const max = Math.max(goal*1.15, ...t14.map(d=>d.total), ...burn14, 1);
+  const net14  = t14.map((d,i) => d.total - burn14[i]);
+  const show = {
+    eaten: document.getElementById("showEaten").checked,
+    burn:  document.getElementById("showBurn").checked,
+    net:   document.getElementById("showNet").checked
+  };
+
+  const pool = [];
+  if(show.eaten) pool.push(...t14.map(d=>d.total));
+  if(show.burn)  pool.push(...burn14);
+  if(show.net)   pool.push(...net14.map(Math.abs));
+  const max = Math.max(show.eaten||show.net ? goal*1.15 : 0, ...pool, 1);
+
   const bars = document.getElementById("bars");
   bars.querySelectorAll(".grp").forEach(g => g.remove());
   t14.forEach((d,i) => {
     const g = document.createElement("div");
     g.className = "grp";
-    const eaten = document.createElement("div");
-    eaten.className = "bar" + (d.total===0 ? " zero" : (goal && d.total>goal ? " over" : ""));
-    eaten.style.height = Math.max(2,(d.total/max)*100)+"%";
-    eaten.title = d.date+": "+fmt(d.total)+" eaten";
-    const burnt = document.createElement("div");
-    burnt.className = "bar burn" + (burn14[i]===0 ? " zero" : "");
-    burnt.style.height = Math.max(2,(burn14[i]/max)*100)+"%";
-    burnt.title = d.date+": "+fmt(burn14[i])+" burned";
-    g.appendChild(eaten); g.appendChild(burnt);
-    bars.appendChild(g);
+    const put = (val, cls, label) => {
+      const b = document.createElement("div");
+      b.className = "bar " + cls + (val===0 ? " zero" : "") + (val<0 ? " neg" : "");
+      b.style.height = Math.max(2,(Math.abs(val)/max)*100)+"%";
+      b.title = d.date+": "+fmt(val)+" "+label;
+      g.appendChild(b);
+    };
+    if(show.eaten) put(d.total, (goal && d.total>goal ? "over" : ""), "eaten");
+    if(show.burn)  put(burn14[i], "burn", "burned");
+    if(show.net)   put(net14[i], "net", "net");
+    if(g.children.length) bars.appendChild(g);
   });
 
   const gl=document.getElementById("goalline");
-  gl.style.display=goal?"block":"none";
-  gl.style.bottom=goal?((goal/max)*100)+"%":"0";
+  gl.style.display = (goal && (show.eaten||show.net)) ? "block" : "none";
+  gl.style.bottom = goal ? ((goal/max)*100)+"%" : "0";
   document.getElementById("xaxis").innerHTML=t14.map((d,i)=>
     "<span>"+(i%3===0||i===13 ? new Date(d.date+"T12:00:00").getDate() : "")+"</span>").join("");
 
-  const eatenSum=t14.reduce((s,d)=>s+d.total,0), burnSum=burn14.reduce((s,v)=>s+v,0);
-  document.getElementById("barSub").textContent = eatenSum || burnSum
-    ? fmt(eatenSum/14)+" eaten and "+fmt(burnSum/14)+" burned a day on average"
-    : "Dashed line is your daily goal.";
+  const avg = arr => fmt(arr.reduce((s,v)=>s+v,0)/14);
+  const parts=[];
+  if(show.eaten) parts.push(avg(t14.map(d=>d.total))+" eaten");
+  if(show.burn)  parts.push(avg(burn14)+" burned");
+  if(show.net)   parts.push(avg(net14)+" net");
+  document.getElementById("barSub").textContent = parts.length
+    ? parts.join(" · ")+" a day on average"
+    : "Pick at least one series to show.";
 
   // weight chart
   const ws=[...DB.weights].sort((a,b)=>a.date.localeCompare(b.date));
@@ -1530,6 +1556,18 @@ document.getElementById("applyGoal").onclick=async()=>{
   toast("Daily goal set to "+fmt(v));
 };
 
+["showEaten","showBurn","showNet"].forEach(id=>{
+  document.getElementById(id).onchange = async () => {
+    DB.prefs.series = {
+      eaten: document.getElementById("showEaten").checked,
+      burn:  document.getElementById("showBurn").checked,
+      net:   document.getElementById("showNet").checked
+    };
+    renderTrends();
+    await save();
+  };
+});
+
 const dlg=document.getElementById("settings");
 document.getElementById("openSettings").onclick=()=>{
   document.getElementById("sGoal").value=DB.prefs.goal||"";
@@ -1604,6 +1642,11 @@ document.getElementById("wipeBtn").onclick=async()=>{
   document.getElementById("wDate").value=todayISO();
   document.getElementById("wDate").max=todayISO();
   tidyMeals();
+  if(DB.prefs.series){
+    document.getElementById("showEaten").checked = !!DB.prefs.series.eaten;
+    document.getElementById("showBurn").checked  = !!DB.prefs.series.burn;
+    document.getElementById("showNet").checked   = !!DB.prefs.series.net;
+  }
   loadPlanFields();
   renderAll();
 })();
